@@ -345,7 +345,7 @@
             let idleTimer, countdownTimer, countdownVal;
             const IDLE_LIMIT_MS = 10 * 60 * 1000; // 10 menit tanpa aktivitas DI DASHBOARD -> warning
             const COUNTDOWN_SEC = 30; // waktu respon sebelum auto-logout
-            const HARD_SESSION_LIMIT_MS = 3 * 60 * 60 * 1000; // 3 jam hard cap, jaring pengaman mutlak
+            const HARD_SESSION_LIMIT_MS = 1 * 60 * 60 * 1000; // 1 jam hard cap, jaring pengaman mutlak
             const sessionStartTime = Date.now();
 
             function resetIdleTimer() {

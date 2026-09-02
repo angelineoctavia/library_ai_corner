@@ -100,47 +100,41 @@ class AIDashboardController extends Controller
     }
 
     // Fungsi untuk mencatat log klik AI lalu redirect ke web aslinya
+    // Hanya dicatat SEKALI per sesi login untuk AI tool yang sama —
+    // klik berikutnya ke tool yang sama (misal karena tab-nya sudah
+    // kebuka tapi user klik ikonnya lagi) tidak menambah baris baru.
     public function trackUsage($id)
     {
         $aiTool = AiTool::findOrFail($id);
         $nim = session('student_nim');
 
-        AiUsageLog::create([
-            'student_nim' => $nim,
-            'ai_tool_name' => $aiTool->ai_name,
-            'usage_logs_duration_minutes' => 0,
-        ]);
+        $loggedTools = session('logged_tools', []);
+
+        if (!in_array($id, $loggedTools)) {
+            AiUsageLog::create([
+                'student_nim' => $nim,
+                'ai_tool_name' => $aiTool->ai_name,
+            ]);
+
+            $loggedTools[] = $id;
+            session(['logged_tools' => $loggedTools]);
+        }
 
         return redirect()->away($aiTool->ai_url);
     }
 
-    // Menutup sesi AI yang masih terbuka (dipanggil via beacon dari dashboard)
-    // dan mencatat estimasi durasi pemakaiannya
+    // Beacon dari dashboard saat tab AI ditutup / tab dashboard aktif lagi.
+    // Tracking durasi sudah tidak dipakai, jadi ini sengaja dibiarkan kosong
+    // (tetap ada supaya route & JS beacon di ai_dashboard.blade.php tidak error).
     public function closeSession(Request $request)
     {
-        $nim = session('student_nim');
-        if (!$nim) {
-            return response()->noContent();
-        }
-
-        $openLogs = AiUsageLog::where('student_nim', $nim)
-            ->where('usage_logs_duration_minutes', 0)
-            ->get();
-
-        foreach ($openLogs as $log) {
-            $minutes = now()->diffInMinutes($log->created_at);
-            // Minimal 1 menit (biar nggak nyangkut di 0 walau sempat dipakai),
-            // di-cap 180 menit biar nggak absurd kalau tab dibiarkan berjam-jam
-            $log->update(['usage_logs_duration_minutes' => min(max($minutes, 1), 180)]);
-        }
-
         return response()->noContent();
     }
 
     // Logout Mahasiswa
     public function logout()
     {
-        session()->forget(['user_id', 'student_nim', 'student_major']);
+        session()->forget(['user_id', 'student_nim', 'student_major', 'logged_tools']);
         return redirect('/');
     }
 }

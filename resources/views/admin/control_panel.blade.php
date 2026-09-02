@@ -32,8 +32,34 @@
             margin: 80px auto 0 auto;
             padding: 0 20px;
             justify-content: space-between;
-            align-items: flex-start;
+            align-items: stretch;
             z-index: 10;
+            height: calc(100vh - 194px);
+        }
+
+        .glass-box-right {
+            width: 580px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(151, 252, 255, 0.4);
+            border-radius: 24px;
+            backdrop-filter: blur(18px);
+            padding: 35px;
+            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.45), 0 0 25px rgba(151, 252, 255, 0.15);
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+            height: 100%;
+            /* Mengikuti tinggi flex container kiri */
+        }
+
+        /* Buat area scrollable fleksibel mengisi sisa tinggi box */
+        .table-scroll {
+            flex: 1;
+            min-height: 0;
+            max-height: none;
+            /* Hapus batasan pixel fix sebelumnya */
+            overflow-y: auto;
+            border-radius: 12px;
         }
 
         .section-title {
@@ -253,17 +279,13 @@
 
         .tools-table-panel {
             display: none;
+            flex-direction: column;
+            flex: 1;
+            overflow: hidden;
         }
 
         .tools-table-panel.tools-table-visible {
-            display: block;
-        }
-
-        /* Wrapper scroll buat body tabel */
-        .table-scroll {
-            max-height: 340px;
-            overflow-y: auto;
-            border-radius: 12px;
+            display: flex;
         }
 
         .table-scroll::-webkit-scrollbar {
@@ -424,7 +446,7 @@
         <!-- Sisi Kanan: List Table -->
         <div>
             <div class="section-title">List</div>
-            <div class="glass-box" style="width: 580px;">
+            <div class="glass-box-right">
 
                 <div class="status-tabs">
                     <button type="button" class="status-tab tab-active active-tab-btn"
