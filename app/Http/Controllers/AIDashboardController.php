@@ -9,33 +9,45 @@ use App\Models\AiUsageLog;
 
 class AIDashboardController extends Controller
 {
-    // Menampilkan Dashboard (Ambil data AI Tools dari database)
-    public function index()
-    {
-        $studentNim = session('student_nim');
-        $studentMajor = session('student_major');
-
-        $aiTools = AiTool::where('status_del', '0')->get();
-
-        return view('ai_dashboard', compact('studentNim', 'studentMajor', 'aiTools'));
-    }
-
-    // Menampilkan Halaman Login Mahasiswa
     public function showLogin()
     {
         return view('student_login');
     }
 
-    // Proses Login Mahasiswa
+    public function index()
+    {
+        $studentNim = session('student_nim') ?? session('staff_id');
+        $studentMajor = session('student_major') ?? 'Staff / Lecturer';
+        $displayName = session('student_name') ?? $studentNim ?? 'Guest';
+
+        $aiTools = AiTool::where('status_del', '0')->get();
+
+        return view('ai_dashboard', compact('studentNim', 'studentMajor', 'displayName', 'aiTools'));
+    }
+
     public function processLogin(Request $request)
     {
         $request->validate([
-            'nim' => 'required|string|min:6'
+            'identifier' => 'required|string|min:3'
         ]);
 
-        $nim = $request->nim;
+        $rawIdentifier = trim($request->identifier);
 
-        $prefix = substr($nim, 0, 6);
+        // --- PARSING FORMAT BARU (NIM+Nama+) ---
+        // Contoh: 0706022310006+Angeline+
+        if (str_contains($rawIdentifier, '+')) {
+            $parts = explode('+', $rawIdentifier);
+            $identifier  = trim($parts[0] ?? ''); // Ini NIM-nya (bisa 8 digit, 10 digit, dsb)
+            $scannedName = trim($parts[1] ?? ''); // Ini Nama dari hasil scan
+        } else {
+            $identifier  = $rawIdentifier;
+            $scannedName = '';
+        }
+
+        // Ambil prefix untuk dicocokkan dengan list jurusan (bisa cek 6 digit atau 4 digit awal)
+        $prefix6 = substr($identifier, 0, 6);
+        $prefix4 = substr($identifier, 0, 4);
+
         $mapping = [
             '101601' => 'Management - Reguler Class',
             '010601' => 'Management - Reguler Class',
@@ -79,34 +91,45 @@ class AIDashboardController extends Controller
             '070602' => 'Information System'
         ];
 
-        $major = $mapping[$prefix] ?? 'Unknown Major';
+        // Cek apakah prefix 6 digit atau 4 digit terdaftar di mapping
+        $department = $mapping[$prefix6] ?? ($mapping[$prefix4] ?? null);
 
-        if ($major === 'Unknown Major') {
-            return back()->with('error', 'NIM tidak terdaftar dalam sistem!');
+        if ($department) {
+            // Gunakan nama dari hasil scan kartu, kalau kosong pakai fallback NIM
+            $userName = $scannedName !== '' ? $scannedName : ('Student (' . $identifier . ')');
+
+            $user = User::Create([
+                    'users_nim'        => $identifier,
+                    'users_name'       => $userName,
+                    'users_department' => $department,
+                    'status_del'       => '0'
+                ]
+            );
+
+            session([
+                'user_id'       => $user->users_id,
+                'student_nim'   => $identifier,
+                'student_name'  => $userName,
+                'student_major' => $department
+            ]);
+
+            return response()->json([
+                'success'      => true,
+                'name'         => $userName,
+                'redirect_url' => route('dashboard')
+            ]);
+        } else {
+            return response()->json([
+                'success' => false,
+                'message' => 'NIM atau jurusan tidak dikenali dalam sistem.'
+            ], 422);
         }
-
-        $user = User::updateOrCreate(
-            ['users_nim' => $nim],
-            ['users_major' => $major]
-        );
-
-        session([
-            'user_id' => $user->users_id,
-            'student_nim' => $nim,
-            'student_major' => $major
-        ]);
-
-        return redirect()->route('dashboard');
     }
 
-    // Fungsi untuk mencatat log klik AI lalu redirect ke web aslinya
-    // Hanya dicatat SEKALI per sesi login untuk AI tool yang sama —
-    // klik berikutnya ke tool yang sama (misal karena tab-nya sudah
-    // kebuka tapi user klik ikonnya lagi) tidak menambah baris baru.
     public function trackUsage($id)
     {
         $aiTool = AiTool::findOrFail($id);
-        $nim = session('student_nim');
+        $nim = session('student_nim') ?? session('staff_id');
 
         $loggedTools = session('logged_tools', []);
 
@@ -123,18 +146,14 @@ class AIDashboardController extends Controller
         return redirect()->away($aiTool->ai_url);
     }
 
-    // Beacon dari dashboard saat tab AI ditutup / tab dashboard aktif lagi.
-    // Tracking durasi sudah tidak dipakai, jadi ini sengaja dibiarkan kosong
-    // (tetap ada supaya route & JS beacon di ai_dashboard.blade.php tidak error).
     public function closeSession(Request $request)
     {
         return response()->noContent();
     }
 
-    // Logout Mahasiswa
     public function logout()
     {
-        session()->forget(['user_id', 'student_nim', 'student_major', 'logged_tools']);
+        session()->forget(['user_id', 'student_nim', 'staff_id', 'student_name', 'student_major', 'logged_tools']);
         return redirect('/');
     }
 }

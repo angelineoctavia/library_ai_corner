@@ -10,7 +10,10 @@ Route::get('/', [AIDashboardController::class, 'index'])->name('dashboard');
 Route::get('/student/login', [AIDashboardController::class, 'showLogin'])->name('student.login.page');
 Route::post('/student/login', [AIDashboardController::class, 'processLogin'])->name('student.login.submit');
 Route::post('/student/logout', [AIDashboardController::class, 'logout'])->name('student.logout');
+
+// --- Route Tracking & Session AI ---
 Route::get('/ai/visit/{id}', [AIDashboardController::class, 'trackUsage'])->name('ai.visit');
+Route::post('/ai/close-session', [AIDashboardController::class, 'closeSession'])->name('ai.close-session');
 
 // --- Route Admin ---
 Route::get('/admin/login', [AdminController::class, 'showAdminLogin'])->name('admin.login');
@@ -28,13 +31,8 @@ Route::get('/admin/dashboard/export', [AdminController::class, 'exportExcel'])->
 
 // Rute utama & CRUD
 Route::get('/control-panel', [AiToolController::class, 'controlPanel'])->name('control.panel');
-
-// Rute tambahan untuk Inactive & Restore
 Route::get('/control-panel/inactive', [AiToolController::class, 'inactive'])->name('control.panel.inactive');
 Route::put('/control-panel/{id}/restore', [AiToolController::class, 'restore'])->name('ai-tools.restore');
 
 // Pastikan route delete/destroy kamu mengubah status_del jadi '1' (bukan delete permanen)
 Route::delete('/ai-tools/{id}', [AiToolController::class, 'destroy'])->name('ai-tools.destroy');
-
-Route::get('/ai/visit/{id}', [AIDashboardController::class, 'trackUsage'])->name('ai.visit');
-Route::post('/ai/close-session', [AIDashboardController::class, 'closeSession'])->name('ai.close-session');

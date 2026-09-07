@@ -17,8 +17,6 @@ return new class extends Migration
 
             // Cuma pakai created_at saja, updated_at dihapus biar bersih
             $table->timestamp('created_at')->useCurrent();
-
-            $table->string('status_del', 1)->default('0');
         });
     }
 

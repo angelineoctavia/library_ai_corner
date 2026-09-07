@@ -27,16 +27,14 @@ class AdminController extends Controller
         $startDate = $request->input('start_date');
         $endDate = $request->input('end_date');
 
-        $query = AiUsageLog::where('ai_usage_logs.status_del', '0')
-            ->join('users', 'ai_usage_logs.student_nim', '=', 'users.users_nim');
+        $query = AiUsageLog::join('users', 'ai_usage_logs.student_nim', '=', 'users.users_nim');
 
         if ($startDate && $endDate) {
             $query->whereBetween('ai_usage_logs.created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
         }
 
         // 1. KPI: AI Terpopuler Hari Ini
-        $aiPopulerHariIni = AiUsageLog::where('status_del', '0')
-            ->whereDate('created_at', Carbon::today())
+        $aiPopulerHariIni = AiUsageLog::whereDate('created_at', Carbon::today())
             ->select('ai_tool_name', DB::raw('count(*) as total'))
             ->groupBy('ai_tool_name')
             ->orderByDesc('total')
@@ -49,10 +47,10 @@ class AdminController extends Controller
             ->first()->ai_tool_name ?? '-';
 
         // 3. KPI: Jurusan Terbanyak
-        $jurusanTerbanyak = (clone $query)->select('users.users_major', DB::raw('count(*) as total'))
-            ->groupBy('users.users_major')
+        $jurusanTerbanyak = (clone $query)->select('users.users_department', DB::raw('count(*) as total'))
+            ->groupBy('users.users_department')
             ->orderByDesc('total')
-            ->first()->users_major ?? '-';
+            ->first()->users_department ?? '-';
 
         // 4. Data Line Chart (Jam Sibuk) — total klik per jam
         $jamSibukData = (clone $query)
@@ -73,7 +71,7 @@ class AdminController extends Controller
         $pieValues = $pieDataRaw->pluck('total')->toArray();
 
         // 6. Tabel Riwayat Akses
-        $riwayat = (clone $query)->select('users.users_nim', 'users.users_major', 'ai_usage_logs.created_at', 'ai_usage_logs.ai_tool_name')
+        $riwayat = (clone $query)->select('users.users_nim', 'users.users_department', 'ai_usage_logs.created_at', 'ai_usage_logs.ai_tool_name')
             ->orderByDesc('ai_usage_logs.created_at')
             ->limit(10)
             ->get();
@@ -104,9 +102,8 @@ class AdminController extends Controller
             return redirect()->back()->withErrors(['export_error' => 'Tanggal "Sampai" tidak boleh lebih awal dari tanggal "Dari"!']);
         }
 
-        $query = AiUsageLog::where('ai_usage_logs.status_del', '0')
-            ->join('users', 'ai_usage_logs.student_nim', '=', 'users.users_nim')
-            ->select('ai_usage_logs.*', 'users.users_major');
+        $query = AiUsageLog::join('users', 'ai_usage_logs.student_nim', '=', 'users.users_nim')
+            ->select('ai_usage_logs.*', 'users.users_department');
 
         if ($exportStart && $exportEnd) {
             $query->whereBetween('ai_usage_logs.created_at', [$exportStart . ' 00:00:00', $exportEnd . ' 23:59:59']);
@@ -142,7 +139,7 @@ class AdminController extends Controller
             $sheet1->fromArray([
                 $index + 1,
                 $log->student_nim,
-                $log->users_major,
+                $log->users_department,
                 $log->ai_tool_name,
                 $log->created_at,
             ], null, 'A' . $row);
@@ -183,7 +180,7 @@ class AdminController extends Controller
         $sheet2->fromArray(['Jurusan', 'Total Penggunaan'], null, 'F1');
         $sheet2->getStyle('F1:G1')->applyFromArray($headerStyle);
 
-        $deptSummary = $logs->groupBy('users_major')->map->count();
+        $deptSummary = $logs->groupBy('users_department')->map->count();
         $rowDept = 2;
         foreach ($deptSummary as $dept => $total) {
             $sheet2->fromArray([$dept ?: 'Lainnya', $total], null, 'F' . $rowDept);

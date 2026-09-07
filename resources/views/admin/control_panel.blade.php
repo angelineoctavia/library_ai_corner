@@ -585,6 +585,7 @@
     const errorFile = document.getElementById('error-file');
 
     let isEditMode = false;
+    let isSubmitting = false;
 
     function handleFile(file) {
         if (file) {
@@ -647,7 +648,13 @@
         removeFileBtn.style.display = 'none';
     }
 
+    // Form Submit Event (Dilengkapi pencegah double-click)
     aiForm.addEventListener('submit', function(e) {
+        if (isSubmitting) {
+            e.preventDefault();
+            return;
+        }
+
         let isValid = true;
 
         if (!aiNameInput.value.trim()) {
@@ -679,6 +686,9 @@
 
         if (!isValid) {
             e.preventDefault();
+        } else {
+            isSubmitting = true;
+            submitBtnText.textContent = 'Saving...';
         }
     });
 
@@ -776,5 +786,4 @@
         });
     });
 </script>
-
 </html>

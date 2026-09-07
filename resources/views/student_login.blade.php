@@ -4,18 +4,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Corner - Student Login</title>
+    <title>AI Corner - Scan Your ID</title>
+    <!-- SweetAlert2 untuk Pop-up interaktif -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
+            font-family: 'Inter', sans-serif;
         }
 
         body {
             background: url("{{ asset('images/Mac_Background.jpg') }}") no-repeat center center fixed;
             background-size: cover;
-            font-family: 'Inter', sans-serif;
             color: #ffffff;
             height: 100vh;
             display: flex;
@@ -32,7 +34,7 @@
             left: 50px;
             color: #ffffff;
             text-decoration: none;
-            font-size: 24px;
+            font-size: 20px;
             font-weight: bold;
             z-index: 30;
             background: rgba(255, 255, 255, 0.1);
@@ -50,7 +52,7 @@
             background: rgba(255, 255, 255, 0.25);
         }
 
-        /* Container Utama diposisikan tepat di tengah */
+        /* Container Utama */
         .login-container {
             display: flex;
             width: 100%;
@@ -62,12 +64,31 @@
             margin-top: -20px;
         }
 
-        /* Kontainer Utama Pembungkus Semuanya */
+        /* Maskot & Animasi Floating */
         .mascot-container {
             position: relative;
             display: flex;
             flex-direction: column;
             align-items: center;
+        }
+
+        .mascot-wrapper {
+            position: relative;
+            animation: floatingMascot 3s ease-in-out infinite;
+        }
+
+        @keyframes floatingMascot {
+            0% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(-12px);
+            }
+
+            100% {
+                transform: translateY(0px);
+            }
         }
 
         .mascot-wrapper::before {
@@ -92,8 +113,8 @@
         }
 
         .mascot-shadow {
-            left: 30%;
-            bottom: 25px;
+            left: 35%;
+            bottom: -10px;
             width: 180px;
             height: 18px;
             background: rgba(0, 0, 0, 0.8);
@@ -104,53 +125,106 @@
             z-index: 1;
         }
 
-        /* Kotak Glassmorphism Login */
-        .login-box {
+        /* Kotak Glassmorphism */
+        .login-box-wrapper {
             position: relative;
-            width: 480px;
-            height: 380px;
-            bottom: 25px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(151, 252, 255, 0.4);
-            border-radius: 24px;
-            backdrop-filter: blur(18px);
-            padding: 40px 40px 100px 40px;
-            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.45), 0 0 25px rgba(151, 252, 255, 0.15);
             display: flex;
             flex-direction: column;
             align-items: center;
         }
 
-        .login-title {
-            font-size: 30px;
-            font-weight: bold;
-            margin-bottom: 95px;
-            color: #ffca7a;
-            text-shadow:
-                0 0 8px rgba(255, 202, 122, 0.9),
-                0 0 18px rgba(255, 177, 66, 0.8),
-                0 0 30px rgba(255, 159, 67, 0.5);
-            transform: translateY(35px);
-        }
-
-        /* Form Input */
-        .form-group {
-            width: 100%;
-            margin-bottom: 25px;
-        }
-
-        .input-wrapper {
+        .login-box {
             position: relative;
-            width: 100%;
+            width: 480px;
+            height: 380px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(151, 252, 255, 0.4);
+            border-radius: 24px;
+            backdrop-filter: blur(18px);
+            padding: 40px;
+            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.45), 0 0 25px rgba(151, 252, 255, 0.15);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 2;
         }
 
-        .input-wrapper input {
+        /* Efek Glow Biru & Gambar Bawah_Login di bawah container */
+        .login-box-glow {
+            position: absolute;
+            bottom: -60px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 380px;
+            height: 120px;
+            background: radial-gradient(ellipse at center, rgba(151, 252, 255, 0.5) 0%, rgba(50, 150, 200, 0.15) 50%, transparent 70%);
+            filter: blur(25px);
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .bawah-login-img {
+            position: absolute;
+            bottom: -220px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 220px;
+            z-index: 3;
+            pointer-events: none;
+            filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.5));
+        }
+
+        .login-title {
+            font-size: 26px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #ffca7a;
+            text-shadow: 0 0 8px rgba(255, 202, 122, 0.9), 0 0 18px rgba(255, 177, 66, 0.8);
+            text-align: center;
+        }
+
+        .scanner-img {
+            width: 130px;
+            margin-bottom: 20px;
+            filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.5));
+        }
+
+        .manual-link-text {
+            color: #adb5bd;
+            font-size: 13px;
+            text-align: center;
+        }
+
+        .manual-link-text a {
+            color: #ffca7a;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .manual-link-text a:hover {
+            text-decoration: underline;
+        }
+
+        #scanner-input {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .manual-form-container {
+            display: none;
+            flex-direction: column;
+            width: 100%;
+            gap: 15px;
+        }
+
+        .manual-input {
             width: 100%;
             background: rgba(255, 255, 255, 0.95);
             border: 1px solid rgba(255, 255, 255, 0.4);
             border-radius: 12px;
-            padding: 16px 20px;
-            padding-right: 45px;
+            padding: 14px 18px;
             color: #2c2c2c;
             font-size: 16px;
             font-weight: 500;
@@ -158,48 +232,12 @@
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
         }
 
-        .input-wrapper input::placeholder {
-            color: #888888;
-        }
-
-        .input-wrapper svg {
-            position: absolute;
-            right: 18px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 20px;
-            height: 20px;
-            fill: #666666;
-        }
-
-        /* Pesan Peringatan Hanya Angka & Error Tidak Terdaftar (Disamakan 12px, Rata Kiri) */
-        .warning-msg {
-            color: #ff9f43;
-            font-size: 12px;
-            margin-top: 6px;
-            display: none;
-            font-weight: 500;
-            text-align: left;
-            width: 100%;
-        }
-
-        .error-msg {
-            color: #ff6b6b;
-            font-size: 12px;
-            margin-top: 6px;
-            display: none;
-            font-weight: 500;
-            text-align: left;
-            width: 100%;
-        }
-
-        /* Tombol Login */
-        .login-btn {
+        .btn-submit-manual {
             width: 100%;
             background: linear-gradient(135deg, #ff9f43 0%, #ff7675 100%);
             border: none;
             border-radius: 12px;
-            padding: 16px;
+            padding: 14px;
             color: #ffffff;
             font-size: 16px;
             font-weight: bold;
@@ -208,60 +246,24 @@
             transition: transform 0.2s, box-shadow 0.2s;
         }
 
-        .login-btn:hover {
+        .btn-submit-manual:hover {
             transform: scale(1.02);
             box-shadow: 0 10px 25px rgba(255, 159, 67, 0.6);
         }
 
-        /* Posisi Bawah_Login.png menempel ke dekat bawah kotak */
-        .bottom-decoration {
-            position: absolute;
-            bottom: 12px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            pointer-events: none;
+        .back-to-scan {
+            color: #adb5bd;
+            font-size: 13px;
+            text-align: center;
+            cursor: pointer;
+            margin-top: 5px;
+            text-decoration: underline;
         }
 
-        /* Efek Trapesium Terbalik (Light Beam) */
-        .light-beam {
-            position: absolute;
-            top: 150px;
-            bottom: 50px;
-            width: 340px;
-            height: 150px;
-            background: linear-gradient(to top, rgba(151, 252, 255, 0.85), rgba(151, 252, 255, 0.2) 50%, transparent 90%);
-            clip-path: polygon(0% 0%, 100% 0%, 61% 100%, 39% 100%);
-            filter: blur(5px);
-            z-index: 1;
+        .back-to-scan:hover {
+            color: #ffffff;
         }
 
-        .bottom-decoration img {
-            width: 150px;
-            position: relative;
-            top: 220px;
-            z-index: 2;
-            filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.5));
-        }
-
-        /* Shadow Oval di Bawah Bunder Thingy */
-        .device-shadow {
-            position: absolute;
-            bottom: -5px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 90px;
-            height: 12px;
-            background: rgba(0, 0, 0, 0.6);
-            border-radius: 50%;
-            filter: blur(4px);
-            z-index: 1;
-        }
-
-        /* Footer Bar di Bawah Layar */
         .bottom-bar {
             position: absolute;
             bottom: 0;
@@ -278,126 +280,178 @@
 
 <body>
 
-    <!-- Tombol Kembali ke Dashboard -->
-    <a href="{{ url('/') }}" class="back-btn">&lsaquo;</a>
+    <a href="{{ url('/') }}" class="back-btn" onclick="event.preventDefault(); window.history.back();">&#10094;</a>
 
-    <div class="mascot-container">
-        <div class="mascot-wrapper">
-            <!-- Glow Biru & Maskot Kuda -->
-            <img src="{{ asset('images/Yucca_Student_Login.png') }}" alt="Student Mascot" class="mascot-login">
-            <!-- Shadow Yucca -->
+    <div class="login-container">
+        <!-- Maskot Yucca dengan Animasi Floating -->
+        <div class="mascot-container">
+            <div class="mascot-wrapper">
+                <img src="{{ asset('images/Yucca_Student_Login.png') }}" alt="Mascot Yucca" class="mascot-login">
+            </div>
             <div class="mascot-shadow"></div>
         </div>
-    </div>
 
-    <!-- Kotak Form Login di Kanan -->
-    <div class="login-box">
-        <div class="login-title">Login Page</div>
-
-        <form action="{{ route('student.login.submit') }}" method="POST" style="width: 100%;" id="loginForm">
-            @csrf
-            <div class="form-group">
-                <div class="input-wrapper">
-                    <!-- Input hanya mengizinkan angka -->
-                    <input type="text" name="nim" id="nimInput" placeholder="NIM" required autocomplete="off"
-                        oninput="validateNim(this)">
-                    <svg viewBox="0 0 24 24">
-                        <path
-                            d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-                    </svg>
+        <!-- Kotak Utama & Elemen Bawah -->
+        <div class="login-box-wrapper">
+            <div class="login-box">
+                <!-- Mode Scan QR -->
+                <div id="scan-view" style="display: flex; flex-direction: column; align-items: center; width: 100%;">
+                    <div class="login-title">Please Scan Your ID</div>
+                    <img src="{{ asset('images/Scanner_Device.png') }}" alt="Scanner Device" class="scanner-img">
+                    <div class="manual-link-text">
+                        if you cannot login with QR, <a href="#" id="trigger-manual">click here</a>
+                    </div>
                 </div>
-                <!-- Pesan Error Sistem (NIM Tidak Terdaftar) -->
-                <div id="unregisteredError" class="error-msg">⚠️ NIM tidak terdaftar dalam sistem!</div>
-                <!-- Pesan Peringatan Hanya Angka -->
-                <div id="warningText" class="warning-msg">⚠️ Hanya bisa memasukkan angka!</div>
+
+                <!-- Mode Manual Input -->
+                <div id="manual-view" class="manual-form-container">
+                    <div class="login-title" style="font-size: 24px; margin-bottom: 15px;">Manual Login</div>
+                    <input type="text" id="manual-nim-input" class="manual-input"
+                        placeholder="Enter ID / Staff ID (Year + 4 digits)...">
+                    <div
+                        style="font-size: 12px; color: #adb5bd; margin-top: -8px; margin-bottom: 5px; text-align: left;">
+                        *Hanya dapat menginput angka (numeric)
+                    </div>
+                    <button type="button" id="btn-manual-submit" class="btn-submit-manual">Login</button>
+                    <div class="back-to-scan" id="trigger-scan">Back to QR Scanner</div>
+                </div>
+
+                <!-- Input tersembunyi untuk Scanner Fisik -->
+                <input type="text" id="scanner-input" autocomplete="off">
             </div>
-
-            <button type="submit" class="login-btn">Log In</button>
-        </form>
-
-        <!-- Gambar Bawah Login & Efek Trapesium Terbalik plus Shadow Device -->
-        <div class="bottom-decoration">
-            <div class="light-beam"></div>
-            <img src="{{ asset('images/Bawah_Login.png') }}" alt="Bottom Decoration">
-            <div class="device-shadow"></div>
+            <!-- Efek Glow Biru & Gambar Bawah_Login.png -->
+            <div class="login-box-glow"></div>
+            <img src="{{ asset('images/Bawah_Login.png') }}" alt="Bottom Element" class="bawah-login-img">
         </div>
     </div>
 
-    <!-- Footer Bar -->
     <div class="bottom-bar"></div>
 
     <script>
-        const majorMap = {
-            '101601': 'Management - Reguler Class',
-            '010601': 'Management - Reguler Class',
-            '101602': 'Management - International Class',
-            '010602': 'Management - International Class',
-            '101604': 'Accounting',
-            '010604': 'Accounting',
-            '101801': 'Magister of Management',
-            '010801': 'Magister of Management',
-            '101891': 'Magister of Management (BUF)',
-            '010891': 'Magister of Management (BUF)',
-            '101901': 'Management S3',
-            '010901': 'Management S3',
-            '102603': 'Architecture',
-            '020603': 'Architecture',
-            '102604': 'Visual Communication Design',
-            '020604': 'Visual Communication Design',
-            '102606': 'Fashion Design and Business',
-            '020606': 'Fashion Design and Business',
-            '103601': 'Psychology',
-            '030601': 'Psychology',
-            '103701': 'Professional Psychologist Education',
-            '030701': 'Professional Psychologist Education',
-            '104601': 'Hotel, Tourism, and Event Business',
-            '040601': 'Hotel, Tourism, and Event Business',
-            '104602': 'Tourism - Culinary Business',
-            '040602': 'Tourism - Culinary Business',
-            '104604': 'Food Technology Program',
-            '040604': 'Food Technology Program',
-            '105601': 'Communication Science',
-            '050601': 'Communication Science',
-            '106601': 'Medicine',
-            '060601': 'Medicine',
-            '106701': 'Medical Doctor Profession Education',
-            '060701': 'Medical Doctor Profession Education',
-            '109601': 'Dental Medicine',
-            '090601': 'Dental Medicine',
-            '107601': 'Informatics',
-            '070601': 'Informatics',
-            '107602': 'Information System',
-            '070602': 'Information System'
-        };
+        const scannerInput = document.getElementById('scanner-input');
+        const scanView = document.getElementById('scan-view');
+        const manualView = document.getElementById('manual-view');
+        const triggerManual = document.getElementById('trigger-manual');
+        const triggerScan = document.getElementById('trigger-scan');
+        const manualNimInput = document.getElementById('manual-nim-input');
+        const btnManualSubmit = document.getElementById('btn-manual-submit');
 
-        function validateNim(input) {
-            let warning = document.getElementById('warningText');
-            let unregisteredError = document.getElementById('unregisteredError');
-
-            let originalValue = input.value;
-
-            // 1. Validasi karakter selain angka (menjaga teks tetap bersih dari huruf)
-            if (/[^0-9]/.test(originalValue)) {
-                warning.style.display = 'block';
-            } else {
-                warning.style.display = 'none';
+        // Fokus otomatis konstan untuk scanner fisik
+        function keepFocus() {
+            if (manualView.style.display !== 'flex' && !Swal.isVisible()) {
+                scannerInput.focus();
             }
+        }
+        setInterval(keepFocus, 100);
+        document.addEventListener('click', () => {
+            if (manualView.style.display !== 'flex' && !Swal.isVisible()) {
+                scannerInput.focus();
+            }
+        });
 
-            // Bersihkan input secara otomatis sehingga karakter non-angka tidak pernah masuk
-            input.value = originalValue.replace(/[^0-9]/g, '');
-
-            // Reset error tidak terdaftar setiap kali user mengetik
-            unregisteredError.style.display = 'none';
-
-            let val = input.value;
-
-            // 2. Jika sudah mencapai 6 digit atau lebih, cek ke dalam mapping jurusan
-            if (val.length >= 6) {
-                let prefix = val.substring(0, 6);
-                if (!majorMap[prefix]) {
-                    unregisteredError.style.display = 'block';
+        // Tangkap data dari Scanner Fisik (Beri parameter sumber 'qr')
+        scannerInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                let scannedData = scannerInput.value.trim();
+                scannerInput.value = '';
+                if (scannedData) {
+                    processLogin(scannedData, 'qr');
                 }
             }
+        });
+
+        triggerManual.addEventListener('click', (e) => {
+            e.preventDefault();
+            scanView.style.display = 'none';
+            manualView.style.display = 'flex';
+            manualNimInput.focus();
+        });
+
+        triggerScan.addEventListener('click', () => {
+            manualView.style.display = 'none';
+            scanView.style.display = 'flex';
+            scannerInput.focus();
+        });
+
+        // Hanya izinkan tombol angka (0-9) saat diketik di input manual
+        manualNimInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                btnManualSubmit.click();
+                return;
+            }
+            if (e.key < '0' || e.key > '9') {
+                e.preventDefault();
+            }
+        });
+
+        // Pencegahan ekstra (mencegah paste huruf atau simbol)
+        manualNimInput.addEventListener('input', function(e) {
+            this.value = this.value.replace(/\D/g, '');
+        });
+
+        // Tombol submit manual (Beri parameter sumber 'manual')
+        btnManualSubmit.addEventListener('click', () => {
+            let identifier = manualNimInput.value.trim();
+            if (!identifier) return;
+
+            processLogin(identifier, 'manual');
+        });
+
+        // Fungsi AJAX POST ke Laravel Backend dengan parameter source ('qr' atau 'manual')
+        function processLogin(identifier, source) {
+            fetch("{{ route('student.login.submit') }}", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                    },
+                    body: JSON.stringify({
+                        identifier: identifier
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: `Welcome, ${data.name}!`,
+                            text: 'Login successful. Redirecting...',
+                            timer: 1500,
+                            showConfirmButton: false,
+                            heightAuto: false
+                        }).then(() => {
+                            window.location.href = data.redirect_url;
+                        });
+                    } else {
+                        // Pesan khusus jika discan via QR fisik vs input manual
+                        let errorText = data.message || 'NIM atau jurusan tidak dikenali dalam sistem.';
+                        let errorTitle = 'Login Failed';
+
+                        if (source === 'qr') {
+                            errorTitle = 'QR Code Not Recognized';
+                            errorText = "Use Universitas Ciputra's official ID card or QR code!";
+                        }
+
+                        Swal.fire({
+                            icon: 'error',
+                            title: errorTitle,
+                            text: errorText,
+                            confirmButtonColor: '#ff9f43',
+                            heightAuto: false
+                        }).then(() => {
+                            scannerInput.value = '';
+                            manualNimInput.value = '';
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Oops!',
+                        text: 'Something went wrong. Please try again.',
+                    });
+                });
         }
     </script>
 </body>
