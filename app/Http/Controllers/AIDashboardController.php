@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\AiTool;
 use App\Models\AiUsageLog;
+use Carbon\Carbon;
 
 class AIDashboardController extends Controller
 {
@@ -28,13 +29,15 @@ class AIDashboardController extends Controller
     public function processLogin(Request $request)
     {
         $request->validate([
-            'identifier' => 'required|string|min:3'
+            'identifier' => 'required|string|min:3',
+            'source'     => 'nullable|string'
         ]);
+
+        $loginSource = $request->input('source', 'manual');
 
         $rawIdentifier = trim($request->identifier);
 
         // --- PARSING FORMAT BARU (NIM+Nama+) ---
-        // Contoh: 0706022310006+Angeline+
         if (str_contains($rawIdentifier, '+')) {
             $parts = explode('+', $rawIdentifier);
             $identifier  = trim($parts[0] ?? ''); // Ini NIM-nya (bisa 8 digit, 10 digit, dsb)
@@ -98,7 +101,8 @@ class AIDashboardController extends Controller
             // Gunakan nama dari hasil scan kartu, kalau kosong pakai fallback NIM
             $userName = $scannedName !== '' ? $scannedName : ('Student (' . $identifier . ')');
 
-            $user = User::Create([
+            $user = User::create(
+                [
                     'users_nim'        => $identifier,
                     'users_name'       => $userName,
                     'users_department' => $department,
@@ -110,7 +114,8 @@ class AIDashboardController extends Controller
                 'user_id'       => $user->users_id,
                 'student_nim'   => $identifier,
                 'student_name'  => $userName,
-                'student_major' => $department
+                'student_major' => $department,
+                'login_source'  => $loginSource
             ]);
 
             return response()->json([
@@ -134,10 +139,19 @@ class AIDashboardController extends Controller
         $loggedTools = session('logged_tools', []);
 
         if (!in_array($id, $loggedTools)) {
-            AiUsageLog::create([
-                'student_nim' => $nim,
-                'ai_tool_name' => $aiTool->ai_name,
-            ]);
+            // Cek ekstra ke database: apakah NIM ini baru saja membuka tool yang sama dalam 5 detik terakhir?
+            $recentLog = AiUsageLog::where('student_nim', $nim)
+                ->where('ai_tool_name', $aiTool->ai_name)
+                ->where('created_at', '>=', Carbon::now()->subSeconds(5))
+                ->first();
+
+            // Hanya catat ke database jika belum ada log dalam 5 detik terakhir
+            if (!$recentLog) {
+                AiUsageLog::create([
+                    'student_nim' => $nim,
+                    'ai_tool_name' => $aiTool->ai_name,
+                ]);
+            }
 
             $loggedTools[] = $id;
             session(['logged_tools' => $loggedTools]);
@@ -153,7 +167,7 @@ class AIDashboardController extends Controller
 
     public function logout()
     {
-        session()->forget(['user_id', 'student_nim', 'staff_id', 'student_name', 'student_major', 'logged_tools']);
+        session()->forget(['user_id', 'student_nim', 'staff_id', 'student_name', 'student_major', 'login_source', 'logged_tools']);
         return redirect('/');
     }
 }

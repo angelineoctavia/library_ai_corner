@@ -406,7 +406,8 @@
                         "X-CSRF-TOKEN": "{{ csrf_token() }}"
                     },
                     body: JSON.stringify({
-                        identifier: identifier
+                        identifier: identifier,
+                        source: source
                     })
                 })
                 .then(response => response.json())

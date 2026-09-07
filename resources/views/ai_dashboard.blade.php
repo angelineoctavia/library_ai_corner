@@ -266,7 +266,12 @@
 
         @if (session()->has('student_nim'))
             <div class="student-nim-display">
-                {{ session('student_nim') }} &bull; <span style="color: #ffb142;">{{ session('student_major') }}</span>
+                @if (session('login_source') === 'qr')
+                    Hello, <span style="color: #ffb142;">{{ session('student_name') }}</span>
+                @else
+                    {{ session('student_nim') }} &bull; <span
+                        style="color: #ffb142;">{{ session('student_major') }}</span>
+                @endif
             </div>
         @endif
 
@@ -343,9 +348,9 @@
         @if (session()->has('student_nim'))
             // ================== IDLE TIMEOUT (pause saat dashboard tidak aktif) ==================
             let idleTimer, countdownTimer, countdownVal;
-            const IDLE_LIMIT_MS = 10 * 60 * 1000; // 10 menit tanpa aktivitas DI DASHBOARD -> warning
+            const IDLE_LIMIT_MS = 1 * 60 * 1000; // 10 menit tanpa aktivitas DI DASHBOARD -> warning
             const COUNTDOWN_SEC = 30; // waktu respon sebelum auto-logout
-            const HARD_SESSION_LIMIT_MS = 1 * 60 * 60 * 1000; // 1 jam hard cap, jaring pengaman mutlak
+            //const HARD_SESSION_LIMIT_MS = 1 * 60 * 60 * 1000; // 1 jam hard cap, jaring pengaman mutlak
             const sessionStartTime = Date.now();
 
             function resetIdleTimer() {
@@ -417,4 +422,5 @@
     </script>
 
 </body>
+
 </html>
