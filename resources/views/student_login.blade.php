@@ -297,7 +297,7 @@
                 <!-- Mode Scan QR -->
                 <div id="scan-view" style="display: flex; flex-direction: column; align-items: center; width: 100%;">
                     <div class="login-title">Please Scan Your ID</div>
-                    <img src="{{ asset('images/Scanner_Device.png') }}" alt="Scanner Device" class="scanner-img">
+                    <img src="{{ asset('images/Scanner.png') }}" alt="Scanner Device" class="scanner-img">
                     <div class="manual-link-text">
                         if you cannot login with QR, <a href="#" id="trigger-manual">click here</a>
                     </div>

@@ -327,6 +327,10 @@
         }
 
         .table-container td {
+            max-width: 200px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
             padding: 14px 16px;
             background: rgba(255, 255, 255, 0.85);
             color: #2c2c2c;
@@ -479,8 +483,7 @@
                                                     Edit
                                                 </button>
 
-                                                <form
-                                                    action="{{ route('admin.ai.delete', $tool->ai_id ?? $tool->id) }}"
+                                                <form action="{{ route('admin.ai.delete', $tool->ai_id ?? $tool->id) }}"
                                                     method="POST" class="delete-form" style="display:inline;">
                                                     @csrf
                                                     @method('DELETE')
@@ -786,4 +789,5 @@
         });
     });
 </script>
+
 </html>

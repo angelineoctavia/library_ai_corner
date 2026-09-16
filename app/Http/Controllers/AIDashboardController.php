@@ -167,7 +167,23 @@ class AIDashboardController extends Controller
 
     public function logout()
     {
+        // 1. Bersihkan session terlebih dahulu
         session()->forget(['user_id', 'student_nim', 'staff_id', 'student_name', 'student_major', 'login_source', 'logged_tools']);
+
+        // 2. Cek sistem operasi secara otomatis
+        if (PHP_OS_FAMILY === 'Windows') {
+            // Eksekusi khusus untuk testing di Windows (Chrome)
+            exec('start chrome.exe --disable-session-crashed-bubble http://127.0.0.1:8000');
+            exec("timeout /t 1 /nobreak > nul & taskkill /f /im chrome.exe > nul 2>&1 &");
+        } else {
+            // Eksekusi otomatis saat berjalan di macOS (Safari di komputer perpus)
+            // Pastikan file script bash 'close_safari.sh' sudah dibuat di folder ~/Scripts/ Mac tersebut
+            $scriptPath = '/Users/username/Scripts/close_safari.sh';
+            if (file_exists($scriptPath)) {
+                exec("bash " . $scriptPath . " > /dev/null 2>&1 &");
+            }
+        }
+
         return redirect('/');
     }
 }
