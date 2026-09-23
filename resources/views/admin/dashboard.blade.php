@@ -289,6 +289,7 @@
                             <tr>
                                 <th>NIM</th>
                                 <th>Major/Department</th>
+                                <th>Date</th>
                                 <th>Access Time</th>
                                 <th>AI Tool</th>
                             </tr>
@@ -298,6 +299,7 @@
                                 <tr>
                                     <td>{{ $row->users_nim }}</td>
                                     <td>{{ $row->users_major }}</td>
+                                    <td>{{ \Carbon\Carbon::parse($row->created_at)->format('Y-m-d') }}</td>
                                     <td>{{ \Carbon\Carbon::parse($row->created_at)->format('H:i') }}</td>
                                     <td>{{ $row->ai_tool_name }}</td>
                                 </tr>
@@ -415,4 +417,5 @@
         }
     </script>
 </body>
+
 </html>

@@ -24,7 +24,11 @@ class AIDashboardController extends Controller
 
         $aiTools = AiTool::where('status_del', '0')->get();
 
-        return view('ai_dashboard', compact('studentNim', 'studentMajor', 'displayName', 'aiTools'));
+        $riwayat = AiUsageLog::latest()->get()->unique(function ($item) {
+            return $item->student_nim . '-' . $item->ai_tool_name;
+        });
+
+        return view('ai_dashboard', compact('studentNim', 'studentMajor', 'displayName', 'aiTools', 'riwayat'));
     }
 
     public function processLogin(Request $request)
@@ -111,7 +115,7 @@ class AIDashboardController extends Controller
         if ($department || $isStaff) {
             $userName = $scannedName !== '' ? $scannedName : ($isStaff ? 'Staff (' . $identifier . ')' : 'Student (' . $identifier . ')');
 
-            $user = User::create([
+            $user = User::updateOrCreate([
                 'users_nim'        => $identifier,
                 'users_name'       => $userName,
                 'users_department' => $department,
