@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\AiTool;
 use App\Models\AiUsageLog;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
 
 class AIDashboardController extends Controller
 {
@@ -34,20 +35,18 @@ class AIDashboardController extends Controller
         ]);
 
         $loginSource = $request->input('source', 'manual');
-
         $rawIdentifier = trim($request->identifier);
 
         // --- PARSING FORMAT BARU (NIM+Nama+) ---
         if (str_contains($rawIdentifier, '+')) {
             $parts = explode('+', $rawIdentifier);
-            $identifier  = trim($parts[0] ?? ''); // Ini NIM-nya (bisa 8 digit, 10 digit, dsb)
-            $scannedName = trim($parts[1] ?? ''); // Ini Nama dari hasil scan
+            $identifier  = trim($parts[0] ?? '');
+            $scannedName = trim($parts[1] ?? '');
         } else {
             $identifier  = $rawIdentifier;
             $scannedName = '';
         }
 
-        // Ambil prefix untuk dicocokkan dengan list jurusan (bisa cek 6 digit atau 4 digit awal)
         $prefix6 = substr($identifier, 0, 6);
         $prefix4 = substr($identifier, 0, 4);
 
@@ -94,39 +93,72 @@ class AIDashboardController extends Controller
             '070602' => 'Information System'
         ];
 
-        // Cek apakah prefix 6 digit atau 4 digit terdaftar di mapping
         $department = $mapping[$prefix6] ?? ($mapping[$prefix4] ?? null);
 
-        if ($department) {
-            // Gunakan nama dari hasil scan kartu, kalau kosong pakai fallback NIM
-            $userName = $scannedName !== '' ? $scannedName : ('Student (' . $identifier . ')');
+        // Inisialisasi variabel $isStaff supaya aman dari warning editor
+        $isStaff = false;
 
-            $user = User::create(
-                [
-                    'users_nim'        => $identifier,
-                    'users_name'       => $userName,
-                    'users_department' => $department,
-                    'status_del'       => '0'
-                ]
-            );
+        // Cek apakah ini Staff ID (Total 8 digit, 4 digit awal adalah tahun wajar)
+        if (!$department) {
+            $tahunMasuk = substr($identifier, 0, 4);
 
-            session([
-                'user_id'       => $user->users_id,
-                'student_nim'   => $identifier,
-                'student_name'  => $userName,
-                'student_major' => $department,
-                'login_source'  => $loginSource
+            if (strlen($identifier) === 8 && is_numeric($tahunMasuk) && $tahunMasuk >= 1950 && $tahunMasuk <= 2030) {
+                $isStaff = true;
+                $department = 'Staff / Lecturer';
+            }
+        }
+
+        if ($department || $isStaff) {
+            $userName = $scannedName !== '' ? $scannedName : ($isStaff ? 'Staff (' . $identifier . ')' : 'Student (' . $identifier . ')');
+
+            $user = User::create([
+                'users_nim'        => $identifier,
+                'users_name'       => $userName,
+                'users_department' => $department,
+                'status_del'       => '0'
             ]);
+
+            // Simpan session sesuai identitas (mahasiswa atau staff)
+            if ($isStaff) {
+                session([
+                    'user_id'       => $user->users_id,
+                    'staff_id'      => $identifier,
+                    'student_name'  => $userName,
+                    'student_major' => $department,
+                    'login_source'  => $loginSource
+                ]);
+            } else {
+                session([
+                    'user_id'       => $user->users_id,
+                    'student_nim'   => $identifier,
+                    'student_name'  => $userName,
+                    'student_major' => $department,
+                    'login_source'  => $loginSource
+                ]);
+            }
+
+            $intendedAiId = session('intended_ai_id');
+            $openAiUrl = null;
+
+            if ($intendedAiId) {
+                session()->forget('intended_ai_id');
+                $openAiUrl = route('ai.visit', ['id' => $intendedAiId]);
+                $redirectUrl = route('dashboard', ['reacquire_tab' => $intendedAiId]);
+            } else {
+                $redirectUrl = route('dashboard');
+            }
 
             return response()->json([
                 'success'      => true,
                 'name'         => $userName,
-                'redirect_url' => route('dashboard')
+                'redirect_url' => $redirectUrl,
+                'open_ai_id'   => $intendedAiId,
+                'open_ai_url'  => $openAiUrl,
             ]);
         } else {
             return response()->json([
                 'success' => false,
-                'message' => 'NIM atau jurusan tidak dikenali dalam sistem.'
+                'message' => 'NIM atau Staff ID tidak dikenali dalam sistem.'
             ], 422);
         }
     }
@@ -136,26 +168,32 @@ class AIDashboardController extends Controller
         $aiTool = AiTool::findOrFail($id);
         $nim = session('student_nim') ?? session('staff_id');
 
-        $loggedTools = session('logged_tools', []);
-
-        if (!in_array($id, $loggedTools)) {
-            // Cek ekstra ke database: apakah NIM ini baru saja membuka tool yang sama dalam 5 detik terakhir?
-            $recentLog = AiUsageLog::where('student_nim', $nim)
-                ->where('ai_tool_name', $aiTool->ai_name)
-                ->where('created_at', '>=', Carbon::now()->subSeconds(5))
-                ->first();
-
-            // Hanya catat ke database jika belum ada log dalam 5 detik terakhir
-            if (!$recentLog) {
-                AiUsageLog::create([
-                    'student_nim' => $nim,
-                    'ai_tool_name' => $aiTool->ai_name,
-                ]);
-            }
-
-            $loggedTools[] = $id;
-            session(['logged_tools' => $loggedTools]);
+        // 1. Kalau user BELUM login, simpan dulu ID tool yang ingin dituju ke session, lalu lempar ke login
+        if (!$nim) {
+            session(['intended_ai_id' => $id]);
+            return redirect()->route('student.login.page'); // Sesuaikan dengan route halaman login kamu
         }
+
+        // Lock atomik di level database - anti race condition,
+        // gak peduli berapa request nyaris bersamaan yang masuk
+        $lock = Cache::store('database')->lock("ai_visit_{$nim}_{$id}", 5);
+
+        if ($lock->get()) {
+            try {
+                $loggedTools = session('logged_tools', []);
+                if (!in_array($id, $loggedTools)) {
+                    AiUsageLog::create([
+                        'student_nim'  => $nim,
+                        'ai_tool_name' => $aiTool->ai_name,
+                    ]);
+                    $loggedTools[] = $id;
+                    session(['logged_tools' => $loggedTools]);
+                }
+            } finally {
+                $lock->release();
+            }
+        }
+        // kalau lock gagal didapat -> ada request lain lagi proses barengan, skip logging, tetap redirect
 
         return redirect()->away($aiTool->ai_url);
     }
@@ -167,22 +205,8 @@ class AIDashboardController extends Controller
 
     public function logout()
     {
-        // 1. Bersihkan session terlebih dahulu
+        // Cukup bersihkan session dan kembalikan ke halaman login/utama
         session()->forget(['user_id', 'student_nim', 'staff_id', 'student_name', 'student_major', 'login_source', 'logged_tools']);
-
-        // 2. Cek sistem operasi secara otomatis
-        if (PHP_OS_FAMILY === 'Windows') {
-            // Eksekusi khusus untuk testing di Windows (Chrome)
-            exec('start chrome.exe --disable-session-crashed-bubble http://127.0.0.1:8000');
-            exec("timeout /t 1 /nobreak > nul & taskkill /f /im chrome.exe > nul 2>&1 &");
-        } else {
-            // Eksekusi otomatis saat berjalan di macOS (Safari di komputer perpus)
-            // Pastikan file script bash 'close_safari.sh' sudah dibuat di folder ~/Scripts/ Mac tersebut
-            $scriptPath = '/Users/username/Scripts/close_safari.sh';
-            if (file_exists($scriptPath)) {
-                exec("bash " . $scriptPath . " > /dev/null 2>&1 &");
-            }
-        }
 
         return redirect('/');
     }

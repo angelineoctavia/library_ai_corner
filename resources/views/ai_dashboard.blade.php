@@ -101,13 +101,33 @@
             border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 24px;
             backdrop-filter: blur(18px);
+            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.45);
+            overflow: hidden;
+        }
+
+        .ai-icons-scroll {
+            max-height: calc(100vh - 260px);
+            /* baru di sini batas tingginya - box induk auto-shrink ngikutin ini */
+            overflow-y: auto;
             padding: 45px 50px;
             display: grid;
             grid-template-columns: repeat(5, 1fr);
             gap: 30px;
             justify-items: center;
-            align-items: center;
-            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.45);
+            align-content: start;
+        }
+
+        .ai-icons-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .ai-icons-scroll::-webkit-scrollbar-thumb {
+            background: rgba(13, 115, 121, 0.5);
+            border-radius: 10px;
+        }
+
+        .ai-icons-scroll::-webkit-scrollbar-track {
+            background: transparent;
         }
 
         .ai-icon-card {
@@ -247,7 +267,7 @@
         <div class="logout-container">
             <form id="logout-form" action="{{ route('student.logout') }}" method="POST">
                 @csrf
-                <button type="submit" class="logout-btn">
+                <button type="button" id="logout-trigger-btn" class="logout-btn">
                     Log Out
                     <svg style="width:14px;height:14px;fill:currentColor;" viewBox="0 0 24 24">
                         <path
@@ -276,150 +296,191 @@
         @endif
 
         <div class="glass-box">
-            @foreach ($aiTools as $tool)
-                <div class="ai-item">
-                    @if (session()->has('student_nim'))
-                        <a href="{{ route('ai.visit', $tool->ai_id) }}"
-                            onclick="openAiTool(event, this.href, {{ $tool->ai_id }})" class="ai-icon-card"
-                            title="{{ $tool->ai_name }}">
+            <div class="ai-icons-scroll">
+                @foreach ($aiTools as $tool)
+                    <div class="ai-item">
+                        <a href="{{ route('ai.visit', $tool->ai_id) }}" id="ai-icon-{{ $tool->ai_id }}"
+                            @if (session()->has('student_nim')) onclick="openAiTool(event, this.href, {{ $tool->ai_id }})" @endif
+                            class="ai-icon-card" title="{{ $tool->ai_name }}">
                             <img src="{{ asset('storage/' . $tool->ai_icon) }}" alt="{{ $tool->ai_name }}">
                         </a>
-                    @else
-                        <a href="{{ route('student.login.page') }}" class="ai-icon-card" title="{{ $tool->ai_name }}">
-                            <img src="{{ asset('storage/' . $tool->ai_icon) }}" alt="{{ $tool->ai_name }}">
-                        </a>
-                    @endif
-
-                    <div class="ai-name">{{ $tool->ai_name }}</div>
-                </div>
-            @endforeach
-        </div>
-    </div>
-
-    <div class="bottom-bar"></div>
-
-    <img src="{{ asset('images/Yucca_Futuristic.png') }}" alt="Mascot" class="mascot">
-    <a href="{{ route('admin.login') }}" class="admin-link">Admin Login</a>
-
-    <!-- Idle Warning Modal -->
-    @if (session()->has('student_nim'))
-        <div id="idle-modal" class="idle-modal-overlay">
-            <div class="idle-modal-box">
-                <h3>Masih di sini?</h3>
-                <p>Sesi akan otomatis logout dalam <span id="idle-countdown">30</span> detik.</p>
-                <button type="button" id="idle-stay-btn" class="idle-stay-btn">Ya, Lanjutkan</button>
+                        <div class="ai-name">{{ $tool->ai_name }}</div>
+                    </div>
+                @endforeach
             </div>
         </div>
-    @endif
 
-    <script>
-        // ================== TAB TRACKING ==================
-        const openedTabs = {};
+        <div class="bottom-bar"></div>
 
-        function openAiTool(event, url, toolId) {
-            event.preventDefault();
-            const key = 'ai_tab_' + toolId;
+        <img src="{{ asset('images/Yucca_Futuristic.png') }}" alt="Mascot" class="mascot">
+        <a href="{{ route('admin.login') }}" class="admin-link">Admin Login</a>
 
-            if (openedTabs[key] && !openedTabs[key].closed) {
-                openedTabs[key].focus();
-            } else {
-                openedTabs[key] = window.open(url, key);
-            }
-        }
-
-        function closeAllOpenedAiTabs() {
-            Object.values(openedTabs).forEach(win => {
-                if (win && !win.closed) {
-                    win.close();
-                }
-            });
-        }
-
-        // ================== DURATION TRACKING (beacon) ==================
-        function sendCloseSessionBeacon() {
-            navigator.sendBeacon(
-                '{{ route('ai.close-session') }}',
-                new URLSearchParams({
-                    _token: '{{ csrf_token() }}'
-                })
-            );
-        }
-
+        <!-- Idle Warning Modal -->
         @if (session()->has('student_nim'))
-            // ================== IDLE TIMEOUT (pause saat dashboard tidak aktif) ==================
-            let idleTimer, countdownTimer, countdownVal;
-            const IDLE_LIMIT_MS = 1 * 60 * 1000; // 10 menit tanpa aktivitas DI DASHBOARD -> warning
-            const COUNTDOWN_SEC = 30; // waktu respon sebelum auto-logout
-            //const HARD_SESSION_LIMIT_MS = 1 * 60 * 60 * 1000; // 1 jam hard cap, jaring pengaman mutlak
-            const sessionStartTime = Date.now();
+            <div id="idle-modal" class="idle-modal-overlay">
+                <div class="idle-modal-box">
+                    <h3>Masih di sini?</h3>
+                    <p>Sesi akan otomatis logout dalam <span id="idle-countdown">30</span> detik.</p>
+                    <button type="button" id="idle-stay-btn" class="idle-stay-btn">Ya, Lanjutkan</button>
+                </div>
+            </div>
 
-            function resetIdleTimer() {
-                clearTimeout(idleTimer);
-                if (document.visibilityState === 'visible') {
-                    idleTimer = setTimeout(showIdleModal, IDLE_LIMIT_MS);
+            <div id="logout-confirm-overlay" class="idle-modal-overlay">
+                <div class="idle-modal-box">
+                    <h3>Yakin ingin logout?</h3>
+                    <p>Pastikan semua tab AI tools sudah kamu tutup manual sebelum logout ya, dikarenakan beberapa
+                        tool
+                        terkadang tidak bisa ditutup otomatis oleh sistem. Terima kasih.</p>
+                    <div style="display:flex; gap:10px; justify-content:center;">
+                        <button type="button" id="logout-cancel-btn" class="idle-stay-btn"
+                            style="background:#6c757d;">Batal</button>
+                        <button type="button" id="logout-confirm-btn" class="idle-stay-btn">Ya, Logout</button>
+                    </div>
+                </div>
+            </div>
+        @endif
+
+        <script>
+            window.name = ''; // reset - cegah tab dashboard ke-collide sama nama target 'ai_tab_X'
+
+            // ================== TAB TRACKING ==================
+            const openedTabs = {};
+
+            function openAiTool(event, url, toolId) {
+                event.preventDefault();
+                const key = 'ai_tab_' + toolId;
+
+                if (openedTabs[key] && !openedTabs[key].closed) {
+                    openedTabs[key].focus();
+                } else {
+                    openedTabs[key] = window.open(url, key);
                 }
             }
 
-            function showIdleModal() {
-                document.getElementById('idle-modal').style.display = 'flex';
-                countdownVal = COUNTDOWN_SEC;
-                document.getElementById('idle-countdown').textContent = countdownVal;
+            @if (session()->has('student_nim') && request()->has('reacquire_tab'))
+                (function() {
+                    const id = {{ (int) request('reacquire_tab') }};
+                    const key = 'ai_tab_' + id;
+                    const link = document.getElementById('ai-icon-' + id);
+                    if (link) {
+                        // Nama target-nya sama kayak yang dibuka di halaman login,
+                        // jadi ini BUKAN buka tab baru - cuma "nyambungin" referensi
+                        // ke tab yang udah ada, jadi gak kena blokir popup blocker.
+                        openedTabs[key] = window.open(link.href, key);
+                    }
+                })();
+            @endif
 
-                countdownTimer = setInterval(() => {
-                    countdownVal--;
+            function closeAllOpenedAiTabs() {
+                Object.values(openedTabs).forEach(win => {
+                    if (win && !win.closed) {
+                        win.close();
+                    }
+                });
+            }
+
+            // ================== DURATION TRACKING (beacon) ==================
+            function sendCloseSessionBeacon() {
+                navigator.sendBeacon(
+                    '{{ route('ai.close-session') }}',
+                    new URLSearchParams({
+                        _token: '{{ csrf_token() }}'
+                    })
+                );
+            }
+
+            @if (session()->has('student_nim'))
+                // ================== IDLE TIMEOUT (pause saat dashboard tidak aktif) ==================
+                let idleTimer, countdownTimer, countdownVal;
+                const IDLE_LIMIT_MS = 15 * 60 * 1000; // 10 menit tanpa aktivitas DI DASHBOARD -> warning
+                const COUNTDOWN_SEC = 30; // waktu respon sebelum auto-logout
+                //const HARD_SESSION_LIMIT_MS = 1 * 60 * 60 * 1000; // 1 jam hard cap, jaring pengaman mutlak
+                const sessionStartTime = Date.now();
+
+                function resetIdleTimer() {
+                    clearTimeout(idleTimer);
+                    if (document.visibilityState === 'visible') {
+                        idleTimer = setTimeout(showIdleModal, IDLE_LIMIT_MS);
+                    }
+                }
+
+                function showIdleModal() {
+                    document.getElementById('idle-modal').style.display = 'flex';
+                    countdownVal = COUNTDOWN_SEC;
                     document.getElementById('idle-countdown').textContent = countdownVal;
-                    if (countdownVal <= 0) {
+
+                    countdownTimer = setInterval(() => {
+                        countdownVal--;
+                        document.getElementById('idle-countdown').textContent = countdownVal;
+                        if (countdownVal <= 0) {
+                            forceLogout();
+                        }
+                    }, 1000);
+                }
+
+                function forceLogout() {
+                    clearInterval(countdownTimer);
+                    clearTimeout(idleTimer);
+                    sendCloseSessionBeacon();
+                    closeAllOpenedAiTabs();
+                    document.getElementById('logout-form').submit();
+                }
+
+                document.getElementById('idle-stay-btn').addEventListener('click', () => {
+                    clearInterval(countdownTimer);
+                    document.getElementById('idle-modal').style.display = 'none';
+                    resetIdleTimer();
+                });
+
+                document.getElementById('logout-trigger-btn').addEventListener('click', () => {
+                    document.getElementById('logout-confirm-overlay').style.display = 'flex';
+                });
+
+                document.getElementById('logout-cancel-btn').addEventListener('click', () => {
+                    document.getElementById('logout-confirm-overlay').style.display = 'none';
+                });
+
+                document.getElementById('logout-confirm-btn').addEventListener('click', () => {
+                    document.getElementById('logout-confirm-overlay').style.display = 'none';
+
+                    sendCloseSessionBeacon();
+                    closeAllOpenedAiTabs();
+
+                    document.getElementById('logout-form').submit();
+                });
+
+                // Aktivitas DI DASHBOARD reset timer
+                ['mousemove', 'keydown', 'click', 'touchstart'].forEach(evt =>
+                    document.addEventListener(evt, resetIdleTimer)
+                );
+
+                // Dashboard di-hide (user pindah ke tab AI/WA/Docs) -> pause idle timer.
+                // Dashboard aktif lagi -> resume timer + catat durasi sesi AI yang masih terbuka.
+                document.addEventListener('visibilitychange', () => {
+                    if (document.visibilityState === 'visible') {
+                        sendCloseSessionBeacon();
+                        resetIdleTimer();
+                    } else {
+                        clearTimeout(idleTimer);
+                    }
+                });
+
+                // Hard cap: paksa logout kalau sudah lewat batas absolut, apapun kondisinya
+                /*setInterval(() => {
+                    if (Date.now() - sessionStartTime >= HARD_SESSION_LIMIT_MS) {
                         forceLogout();
                     }
-                }, 1000);
-            }
+                }, 60000);*/
 
-            function forceLogout() {
-                clearInterval(countdownTimer);
-                clearTimeout(idleTimer);
-                sendCloseSessionBeacon();
-                closeAllOpenedAiTabs();
-                document.getElementById('logout-form').submit();
-            }
-
-            document.getElementById('idle-stay-btn').addEventListener('click', () => {
-                clearInterval(countdownTimer);
-                document.getElementById('idle-modal').style.display = 'none';
                 resetIdleTimer();
-            });
 
-            // Aktivitas DI DASHBOARD reset timer
-            ['mousemove', 'keydown', 'click', 'touchstart'].forEach(evt =>
-                document.addEventListener(evt, resetIdleTimer)
-            );
-
-            // Dashboard di-hide (user pindah ke tab AI/WA/Docs) -> pause idle timer.
-            // Dashboard aktif lagi -> resume timer + catat durasi sesi AI yang masih terbuka.
-            document.addEventListener('visibilitychange', () => {
-                if (document.visibilityState === 'visible') {
+                // Logout manual: catat durasi + tutup semua tab AI
+                document.getElementById('logout-form').addEventListener('submit', () => {
                     sendCloseSessionBeacon();
-                    resetIdleTimer();
-                } else {
-                    clearTimeout(idleTimer);
-                }
-            });
-
-            // Hard cap: paksa logout kalau sudah lewat batas absolut, apapun kondisinya
-            setInterval(() => {
-                if (Date.now() - sessionStartTime >= HARD_SESSION_LIMIT_MS) {
-                    forceLogout();
-                }
-            }, 60000);
-
-            resetIdleTimer();
-
-            // Logout manual: catat durasi + tutup semua tab AI
-            document.getElementById('logout-form').addEventListener('submit', () => {
-                sendCloseSessionBeacon();
-                closeAllOpenedAiTabs();
-            });
-        @endif
-    </script>
+                    closeAllOpenedAiTabs();
+                });
+            @endif
+        </script>
 
 </body>
 

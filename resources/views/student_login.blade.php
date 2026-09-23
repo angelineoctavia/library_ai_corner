@@ -12,12 +12,12 @@
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Inter', sans-serif;
         }
 
         body {
             background: url("{{ asset('images/Mac_Background.jpg') }}") no-repeat center center fixed;
             background-size: cover;
+            font-family: 'Inter', sans-serif;
             color: #ffffff;
             height: 100vh;
             display: flex;
@@ -34,22 +34,17 @@
             left: 50px;
             color: #ffffff;
             text-decoration: none;
-            font-size: 20px;
+            font-size: 46px;
             font-weight: bold;
             z-index: 30;
-            background: rgba(255, 255, 255, 0.1);
-            width: 42px;
-            height: 42px;
-            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            backdrop-filter: blur(8px);
             transition: background 0.2s;
         }
 
         .back-btn:hover {
-            background: rgba(255, 255, 255, 0.25);
+            color: rgba(255, 255, 255, 0.25);
         }
 
         /* Container Utama */
@@ -280,7 +275,7 @@
 
 <body>
 
-    <a href="{{ url('/') }}" class="back-btn" onclick="event.preventDefault(); window.history.back();">&#10094;</a>
+    <a href="{{ url('/') }}" class="back-btn" onclick="event.preventDefault(); window.history.back();">&lsaquo;</a>
 
     <div class="login-container">
         <!-- Maskot Yucca dengan Animasi Floating -->
@@ -306,11 +301,10 @@
                 <!-- Mode Manual Input -->
                 <div id="manual-view" class="manual-form-container">
                     <div class="login-title" style="font-size: 24px; margin-bottom: 15px;">Manual Login</div>
-                    <input type="text" id="manual-nim-input" class="manual-input"
-                        placeholder="Enter ID / Staff ID (Year + 4 digits)...">
+                    <input type="text" id="manual-nim-input" class="manual-input" placeholder="Enter NIM/ Staff ID">
                     <div
                         style="font-size: 12px; color: #adb5bd; margin-top: -8px; margin-bottom: 5px; text-align: left;">
-                        *Hanya dapat menginput angka (numeric)
+                        *Only accepts numeric input
                     </div>
                     <button type="button" id="btn-manual-submit" class="btn-submit-manual">Login</button>
                     <div class="back-to-scan" id="trigger-scan">Back to QR Scanner</div>
@@ -413,6 +407,9 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
+                        if (data.open_ai_url) {
+                            window.open(data.open_ai_url, 'ai_tab_' + data.open_ai_id);
+                        }
                         Swal.fire({
                             icon: 'success',
                             title: `Welcome, ${data.name}!`,

@@ -225,16 +225,16 @@
         <form method="GET" action="{{ route('admin.dashboard') }}">
             <div class="filter-section">
                 <div class="input-group-date">
-                    <label for="startDate">Dari</label>
+                    <label for="startDate">From</label>
                     <input type="date" id="startDate" name="start_date" value="{{ $startDate ?? '' }}">
                 </div>
 
                 <div class="input-group-date">
-                    <label for="endDate">Sampai</label>
+                    <label for="endDate">To</label>
                     <input type="date" id="endDate" name="end_date" value="{{ $endDate ?? '' }}">
                 </div>
 
-                <button type="submit" class="btn-filter">Terapkan Filter</button>
+                <button type="submit" class="btn-filter">Apply Filter</button>
 
                 @if (!empty($startDate) || !empty($endDate))
                     <a href="{{ route('admin.dashboard') }}" class="btn-reset">Reset</a>
@@ -242,7 +242,7 @@
 
                 <a href="{{ route('admin.dashboard.export', ['start_date' => $startDate ?? '', 'end_date' => $endDate ?? '']) }}"
                     class="btn-download">
-                    Download Laporan (.xlsx) &darr;
+                    Download Report (.xlsx) &darr;
                 </a>
             </div>
         </form>
@@ -256,15 +256,15 @@
         <!-- 3 KPI Cards (logic dari code kedua) -->
         <div class="kpi-container">
             <div class="kpi-card">
-                <h4>AI Terpopuler Hari Ini</h4>
+                <h4>Most Popular AI Today</h4>
                 <h2>{{ $aiPopulerHariIni }}</h2>
             </div>
             <div class="kpi-card">
-                <h4>AI Paling Favorit</h4>
+                <h4>Top Favorite AI</h4>
                 <h2>{{ $aiFavorit }}</h2>
             </div>
             <div class="kpi-card">
-                <h4>Jurusan Dengan Pengguna Terbanyak</h4>
+                <h4>Department With Most Users</h4>
                 <h2>{{ $jurusanTerbanyak }}</h2>
             </div>
         </div>
@@ -274,7 +274,7 @@
 
             <!-- Tren Jam Sibuk (Line Chart) -->
             <div class="panel-box">
-                <h4>Tren Jam Sibuk</h4>
+                <h4>Peak Hours Trend</h4>
                 <div style="position: relative; flex-grow: 1; min-height: 200px;">
                     <canvas id="lineChart"></canvas>
                 </div>
@@ -282,15 +282,15 @@
 
             <!-- Riwayat Akses (Table) -->
             <div class="panel-box">
-                <h4>Riwayat Akses</h4>
+                <h4>Access History</h4>
                 <div class="table-responsive">
                     <table>
                         <thead>
                             <tr>
                                 <th>NIM</th>
-                                <th>Jurusan</th>
-                                <th>Jam Akses</th>
-                                <th>Jenis AI</th>
+                                <th>Major/Department</th>
+                                <th>Access Time</th>
+                                <th>AI Tool</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -314,7 +314,7 @@
 
             <!-- Proporsi Penggunaan AI (Pie Chart) -->
             <div class="panel-box">
-                <h4>Proporsi Penggunaan AI</h4>
+                <h4>AI Usage Proportion</h4>
                 <div
                     style="position: relative; flex-grow: 1; min-height: 200px; display: flex; justify-content: center; align-items: center;">
                     <canvas id="pieChart"></canvas>

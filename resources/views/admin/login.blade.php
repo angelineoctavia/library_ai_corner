@@ -32,22 +32,17 @@
             left: 50px;
             color: #ffffff;
             text-decoration: none;
-            font-size: 24px;
+            font-size: 46px;
             font-weight: bold;
             z-index: 30;
-            background: rgba(255, 255, 255, 0.1);
-            width: 42px;
-            height: 42px;
-            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            backdrop-filter: blur(8px);
             transition: background 0.2s;
         }
 
         .back-btn:hover {
-            background: rgba(255, 255, 255, 0.25);
+            color: rgba(255, 255, 255, 0.25);
         }
 
         /* Kotak Glassmorphism Login diposisikan pas di tengah */
@@ -181,6 +176,7 @@
             <div class="form-group">
                 <div class="input-wrapper">
                     <input type="text" name="username" placeholder="Username" required autocomplete="off">
+                     <!-- Gambar icon: orang/user -->
                     <svg viewBox="0 0 24 24">
                         <path
                             d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
@@ -191,6 +187,7 @@
             <div class="form-group">
                 <div class="input-wrapper">
                     <input type="password" name="password" placeholder="Password" required>
+                    <!-- Ngegambar icon: gembok (kunci password) -->
                     <svg viewBox="0 0 24 24">
                         <path
                             d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z" />
