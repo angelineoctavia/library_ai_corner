@@ -106,7 +106,7 @@ class AIDashboardController extends Controller
         if (!$department) {
             $tahunMasuk = substr($identifier, 0, 4);
 
-            if (strlen($identifier) === 8 && is_numeric($tahunMasuk) && $tahunMasuk >= 1950 && $tahunMasuk <= 2030) {
+            if (strlen($identifier) === 8 && is_numeric($tahunMasuk) && $tahunMasuk >= 1950 && $tahunMasuk <= now()->year) {
                 $isStaff = true;
                 $department = 'Staff / Lecturer';
             }

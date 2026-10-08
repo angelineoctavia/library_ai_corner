@@ -15,7 +15,6 @@ use Illuminate\Support\Facades\Hash;
 
 class AdminController extends Controller
 {
-    // GANTI INI kalau nama tabel admin kamu ternyata bukan 'admins'
     const ADMIN_TABLE = 'admins';
 
     public function dashboard(Request $request)
@@ -76,6 +75,7 @@ class AdminController extends Controller
             ->select('users.users_department', DB::raw('count(DISTINCT deduped_logs.student_nim) as total'))
             ->groupBy('users.users_department')
             ->orderByDesc('total')
+            ->orderBy('users.users_department')
             ->first()->users_department ?? '-';
 
         // 3. Data Pie Chart (Proporsi AI) - sudah deduped per sesi
@@ -168,7 +168,7 @@ class AdminController extends Controller
             'alignment' => ['horizontal' => 'center'],
         ];
 
-        // ===== SHEET 1: Riwayat Penggunaan AI =====
+        // SHEET 1: Riwayat Penggunaan AI
         $sheet1 = $spreadsheet->getActiveSheet();
         $sheet1->setTitle('Riwayat Penggunaan');
 
@@ -198,11 +198,11 @@ class AdminController extends Controller
             $sheet1->getStyle('A1:E' . ($row - 1))->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
         }
 
-        // ===== SHEET 2: Ringkasan Statistik =====
+        // SHEET 2: Ringkasan Statistik
         $sheet2 = $spreadsheet->createSheet();
         $sheet2->setTitle('Ringkasan Statistik');
 
-        // --- Tabel 1: Statistik & Proporsi Berdasarkan AI Tool ---
+        // Tabel 1: Statistik & Proporsi Berdasarkan AI Tool
         $sheet2->fromArray(['Nama AI Tool', 'Total Penggunaan', 'Proporsi (%)', 'Jumlah User Unik'], null, 'A1');
         $sheet2->getStyle('A1:D1')->applyFromArray($headerStyle);
 
@@ -221,22 +221,29 @@ class AdminController extends Controller
             $sheet2->getStyle('A1:D' . ($rowAi - 1))->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
         }
 
-        // --- Tabel 2: Berdasarkan Jurusan (Kolom F - G) ---
-        $sheet2->fromArray(['Jurusan', 'Total Penggunaan'], null, 'F1');
-        $sheet2->getStyle('F1:G1')->applyFromArray($headerStyle);
+        // Tabel 2: Berdasarkan Jurusan (Kolom F - H)
+        $sheet2->fromArray(['Jurusan', 'Total Penggunaan', 'Jumlah User Unik'], null, 'F1');
+        $sheet2->getStyle('F1:H1')->applyFromArray($headerStyle);
 
-        $deptSummary = $logs->groupBy('users_department')->map->count();
+        // Urut berdasarkan user unik terbanyak (sama kayak KPI di dashboard)
+        $deptSummary = $logs->groupBy('users_department')
+            ->sortByDesc(fn($items) => $items->unique('student_nim')->count());
+
         $rowDept = 2;
-        foreach ($deptSummary as $dept => $total) {
-            $sheet2->fromArray([$dept ?: 'Lainnya', $total], null, 'F' . $rowDept);
+        foreach ($deptSummary as $dept => $items) {
+            $sheet2->fromArray([
+                $dept ?: 'Lainnya',
+                $items->count(),
+                $items->unique('student_nim')->count(),
+            ], null, 'F' . $rowDept);
             $rowDept++;
         }
         if ($rowDept > 2) {
-            $sheet2->setAutoFilter('F1:G' . ($rowDept - 1));
-            $sheet2->getStyle('F1:G' . ($rowDept - 1))->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+            $sheet2->setAutoFilter('F1:H' . ($rowDept - 1));
+            $sheet2->getStyle('F1:H' . ($rowDept - 1))->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
         }
 
-        foreach (range('A', 'G') as $col) {
+        foreach (range('A', 'H') as $col) {
             $sheet2->getColumnDimension($col)->setAutoSize(true);
         }
 

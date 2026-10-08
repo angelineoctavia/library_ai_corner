@@ -107,7 +107,6 @@
 
         .ai-icons-scroll {
             max-height: calc(100vh - 260px);
-            /* baru di sini batas tingginya - box induk auto-shrink ngikutin ini */
             overflow-y: auto;
             padding: 45px 50px;
             display: grid;
@@ -143,6 +142,24 @@
         .ai-icon-card:hover {
             transform: scale(1.12);
             box-shadow: 0 10px 25px rgba(255, 177, 66, 0.6);
+        }
+
+        /* Dipakai kalau browser nge-block tab AI otomatis: icon-nya berkedip
+           biar user tau tinggal klik icon itu buat buka */
+        .ai-icon-card.attention {
+            animation: pulse-glow 1.2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-glow {
+
+            0%,
+            100% {
+                box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+            }
+
+            50% {
+                box-shadow: 0 0 28px 8px rgba(255, 177, 66, 0.9);
+            }
         }
 
         .ai-item {
@@ -263,7 +280,8 @@
 
 <body>
 
-    @if (session()->has('student_nim'))
+    {{-- $studentNim berisi NIM mahasiswa ATAU Staff ID (lihat index() di controller) --}}
+    @if ($studentNim)
         <div class="logout-container">
             <form id="logout-form" action="{{ route('student.logout') }}" method="POST">
                 @csrf
@@ -284,13 +302,14 @@
             <span>UC Library's AI Corner!</span>
         </div>
 
-        @if (session()->has('student_nim'))
+        @if ($studentNim)
             <div class="student-nim-display">
-                @if (session('login_source') === 'qr')
-                    Hello, <span style="color: #ffb142;">{{ session('student_name') }}</span>
+                @if (session('scanned_name'))
+                    {{-- Login lewat scanner: tampilkan nama --}}
+                    Welcome, <span style="color: #ffb142;">{{ session('scanned_name') }}</span>
                 @else
-                    {{ session('student_nim') }} &bull; <span
-                        style="color: #ffb142;">{{ session('student_major') }}</span>
+                    {{-- Login manual: tampilkan NIM / Staff ID --}}
+                    Welcome, {{ $studentNim }} &bull; <span style="color: #ffb142;">{{ $studentMajor }}</span>
                 @endif
             </div>
         @endif
@@ -300,7 +319,7 @@
                 @foreach ($aiTools as $tool)
                     <div class="ai-item">
                         <a href="{{ route('ai.visit', $tool->ai_id) }}" id="ai-icon-{{ $tool->ai_id }}"
-                            @if (session()->has('student_nim')) onclick="openAiTool(event, this.href, {{ $tool->ai_id }})" @endif
+                            @if ($studentNim) onclick="openAiTool(event, this.href, {{ $tool->ai_id }})" @endif
                             class="ai-icon-card" title="{{ $tool->ai_name }}">
                             <img src="{{ asset('storage/' . $tool->ai_icon) }}" alt="{{ $tool->ai_name }}">
                         </a>
@@ -316,7 +335,7 @@
         <a href="{{ route('admin.login') }}" class="admin-link">Admin Login</a>
 
         <!-- Idle Warning Modal -->
-        @if (session()->has('student_nim'))
+        @if ($studentNim)
             <div id="idle-modal" class="idle-modal-overlay">
                 <div class="idle-modal-box">
                     <h3>Masih di sini?</h3>
@@ -343,31 +362,78 @@
         <script>
             window.name = ''; // reset - cegah tab dashboard ke-collide sama nama target 'ai_tab_X'
 
-            // ================== TAB TRACKING ==================
+            // TAB TRACKING
             const openedTabs = {};
+
+            /*
+             * Buka tab AI, ATAU fokus ke tab yang sudah ada kalau sebelumnya sudah dibuka.
+             *
+             * Triknya: window.open('', nama) itu "cari window dengan nama itu".
+             *  - Kalau sudah ada  -> dapat window-nya (isinya website AI = beda origin,
+             *    jadi akses .location akan error -> kita tau itu tab asli, tinggal fokus)
+             *  - Kalau belum ada  -> browser bikin tab kosong baru (about:blank,
+             *    bisa diakses) -> baru kita arahkan ke URL AI-nya
+             *
+             * Return true kalau tab siap, false kalau di-block popup blocker.
+             */
+            function openOrFocusAiTab(toolId, url) {
+                const key = 'ai_tab_' + toolId;
+
+                // 1. Referensi tab masih hidup -> fokus aja
+                if (openedTabs[key] && !openedTabs[key].closed) {
+                    openedTabs[key].focus();
+                    return true;
+                }
+
+                // 2. Cari tab bernama sama (misal yang dibuka dari halaman login)
+                const win = window.open('', key);
+                if (!win) {
+                    return false; // di-block browser
+                }
+
+                let isNewBlankTab = false;
+                try {
+                    isNewBlankTab = (win.location.href === 'about:blank');
+                } catch (e) {
+                    isNewBlankTab = false; // cross-origin = tab AI yang sudah ada
+                }
+
+                if (isNewBlankTab) {
+                    win.location.href = url; // tab baru -> arahkan ke AI (sekaligus nge-log lewat /ai/visit)
+                } else {
+                    win.focus(); // tab AI sudah ada -> cukup fokus, jangan di-reload
+                }
+
+                openedTabs[key] = win;
+                return true;
+            }
 
             function openAiTool(event, url, toolId) {
                 event.preventDefault();
-                const key = 'ai_tab_' + toolId;
-
-                if (openedTabs[key] && !openedTabs[key].closed) {
-                    openedTabs[key].focus();
-                } else {
-                    openedTabs[key] = window.open(url, key);
+                if (event.currentTarget) {
+                    event.currentTarget.classList.remove('attention');
                 }
+                openOrFocusAiTab(toolId, url);
             }
 
-            @if (session()->has('student_nim') && request()->has('reacquire_tab'))
+            @if ($studentNim && request()->has('reacquire_tab'))
+                // Baru selesai login dari klik icon AI: sambungkan referensi ke tab AI
+                // yang sudah dibuka halaman login (atau buka kalau belum ada).
                 (function() {
                     const id = {{ (int) request('reacquire_tab') }};
-                    const key = 'ai_tab_' + id;
-                    const link = document.getElementById('ai-icon-' + id);
-                    if (link) {
-                        // Nama target-nya sama kayak yang dibuka di halaman login,
-                        // jadi ini BUKAN buka tab baru - cuma "nyambungin" referensi
-                        // ke tab yang udah ada, jadi gak kena blokir popup blocker.
-                        openedTabs[key] = window.open(link.href, key);
+                    const icon = document.getElementById('ai-icon-' + id);
+
+                    if (icon) {
+                        const ok = openOrFocusAiTab(id, icon.href);
+                        if (!ok) {
+                            // Browser nge-block buka tab otomatis -> icon berkedip, tinggal klik
+                            icon.classList.add('attention');
+                        }
                     }
+
+                    // Bersihin ?reacquire_tab=.. dari URL supaya refresh halaman
+                    // tidak memicu buka tab lagi
+                    history.replaceState(null, '', window.location.pathname);
                 })();
             @endif
 
@@ -379,7 +445,7 @@
                 });
             }
 
-            // ================== DURATION TRACKING (beacon) ==================
+            // DURATION TRACKING (beacon)
             function sendCloseSessionBeacon() {
                 navigator.sendBeacon(
                     '{{ route('ai.close-session') }}',
@@ -389,10 +455,10 @@
                 );
             }
 
-            @if (session()->has('student_nim'))
-                // ================== IDLE TIMEOUT (pause saat dashboard tidak aktif) ==================
+            @if ($studentNim)
+                // IDLE TIMEOUT (pause saat dashboard tidak aktif)
                 let idleTimer, countdownTimer, countdownVal;
-                const IDLE_LIMIT_MS = 15 * 60 * 1000; // 10 menit tanpa aktivitas DI DASHBOARD -> warning
+                const IDLE_LIMIT_MS = 15 * 60 * 1000; // 15 menit tanpa aktivitas DI DASHBOARD -> warning
                 const COUNTDOWN_SEC = 30; // waktu respon sebelum auto-logout
                 //const HARD_SESSION_LIMIT_MS = 1 * 60 * 60 * 1000; // 1 jam hard cap, jaring pengaman mutlak
                 const sessionStartTime = Date.now();
@@ -455,7 +521,7 @@
                 );
 
                 // Dashboard di-hide (user pindah ke tab AI/WA/Docs) -> pause idle timer.
-                // Dashboard aktif lagi -> resume timer + catat durasi sesi AI yang masih terbuka.
+                // Dashboard aktif lagi -> resume timer.
                 document.addEventListener('visibilitychange', () => {
                     if (document.visibilityState === 'visible') {
                         sendCloseSessionBeacon();
@@ -483,5 +549,4 @@
         </script>
 
 </body>
-
 </html>

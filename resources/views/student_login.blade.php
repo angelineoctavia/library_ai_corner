@@ -391,8 +391,13 @@
             processLogin(identifier, 'manual');
         });
 
+        let isLoggingIn = false;
+
         // Fungsi AJAX POST ke Laravel Backend dengan parameter source ('qr' atau 'manual')
         function processLogin(identifier, source) {
+            if (isLoggingIn) return; // cegah double scan / double klik
+            isLoggingIn = true;
+
             fetch("{{ route('student.login.submit') }}", {
                     method: "POST",
                     headers: {
@@ -407,20 +412,35 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
+                        // Buka tab AI yang tadi diklik sebelum login (kalau ada)
                         if (data.open_ai_url) {
                             window.open(data.open_ai_url, 'ai_tab_' + data.open_ai_id);
                         }
+
+                        // Kalau nama cuma placeholder "Student (123)" / "Staff (123)",
+                        // tampilkan NIM/Staff ID-nya aja. Kalau ada nama dari scanner, pakai nama.
+                        const rawId = identifier.split('+')[0].trim();
+                        const isPlaceholder = /^(Student|Staff) \(/.test(data.name);
+                        const shownName = isPlaceholder ? rawId : data.name;
+
                         Swal.fire({
                             icon: 'success',
-                            title: `Welcome, ${data.name}!`,
+                            title: `Welcome, ${shownName}!`,
                             text: 'Login successful. Redirecting...',
                             timer: 1500,
                             showConfirmButton: false,
                             heightAuto: false
-                        }).then(() => {
-                            window.location.href = data.redirect_url;
                         });
+
+                        // Redirect pakai setTimeout biasa, JANGAN nunggu Swal .then():
+                        // kalau tab ini sudah ke-background (karena tab AI kebuka),
+                        // animasi Swal bisa macet dan redirect-nya ikut tertahan.
+                        setTimeout(() => {
+                            window.location.href = data.redirect_url;
+                        }, 1500);
                     } else {
+                        isLoggingIn = false;
+
                         // Pesan khusus jika discan via QR fisik vs input manual
                         let errorText = data.message || 'NIM atau jurusan tidak dikenali dalam sistem.';
                         let errorTitle = 'Login Failed';
@@ -443,11 +463,15 @@
                     }
                 })
                 .catch(error => {
+                    isLoggingIn = false;
                     console.error('Error:', error);
                     Swal.fire({
                         icon: 'error',
                         title: 'Oops!',
                         text: 'Something went wrong. Please try again.',
+                        confirmButtonColor: '#ff9f43',
+                        heightAuto: false,
+                        scrollbarPadding: false
                     });
                 });
         }

@@ -260,7 +260,7 @@
                 <h2>{{ $aiFavorit }}</h2>
             </div>
             <div class="kpi-card">
-                <h4>Department With Most Users</h4>
+                <h4>Department With Most Users (Unique)</h4>
                 <h2>{{ $jurusanTerbanyak }}</h2>
             </div>
         </div>
@@ -318,6 +318,26 @@
         const pieLabelsData = @json($pieLabels);
         const pieValuesData = @json($pieValues);
 
+        // Palet dasar (12 warna beda, oranye & kuning sengaja dipisah jauh
+        // urutannya biar slice yang bersebelahan gampang dibedakan).
+        const basePalette = [
+            '#F27D00', '#0abde3', '#ee5253', '#5f27cd', '#10ac84', '#feca57',
+            '#2e86de', '#ff6b81', '#8395a7', '#01a3a4', '#a55eea', '#576574'
+        ];
+
+        // Kalau jumlah AI lebih dari 12, sisanya dibuatkan otomatis pakai
+        // golden angle (137.5°) + lightness selang-seling, jadi warnanya
+        // tidak akan dobel dan slice bersebelahan tetap beda jelas.
+        function getPieColors(count) {
+            const colors = [...basePalette];
+            for (let i = basePalette.length; i < count; i++) {
+                const hue = (i * 137.5) % 360;
+                const light = i % 2 === 0 ? 50 : 62;
+                colors.push(`hsl(${hue}, 65%, ${light}%)`);
+            }
+            return colors.slice(0, count);
+        }
+
         // Pie Chart (Proporsi Penggunaan AI)
         const ctxPie = document.getElementById('pieChart').getContext('2d');
         new Chart(ctxPie, {
@@ -326,9 +346,8 @@
                 labels: pieLabelsData.length > 0 ? pieLabelsData : ['Tidak Ada Data'],
                 datasets: [{
                     data: pieValuesData.length > 0 ? pieValuesData : [1],
-                    backgroundColor: ['#F27D00', '#feca57', '#ee5253', '#0abde3', '#10ac84', '#5f27cd',
-                        '#c8d6e5'
-                    ],
+                    backgroundColor: pieValuesData.length > 0 ?
+                        getPieColors(pieValuesData.length) : ['#c8d6e5'],
                     borderColor: '#ffffff',
                     borderWidth: 1.5
                 }]
@@ -368,5 +387,4 @@
         }
     </script>
 </body>
-
 </html>
