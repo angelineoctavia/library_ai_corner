@@ -7,7 +7,7 @@ use App\Models\User;
 use App\Models\AiTool;
 use App\Models\AiUsageLog;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 
 class AIDashboardController extends Controller
 {
@@ -115,30 +115,54 @@ class AIDashboardController extends Controller
         if ($department || $isStaff) {
             $userName = $scannedName !== '' ? $scannedName : ($isStaff ? 'Staff (' . $identifier . ')' : 'Student (' . $identifier . ')');
 
-            $user = User::updateOrCreate([
-                'users_nim'        => $identifier,
-                'users_name'       => $userName,
-                'users_department' => $department,
-                'status_del'       => '0'
-            ]);
+            // PENTING: cuma users_nim yang jadi kunci pencarian. Kalau semua
+            // kolom (termasuk nama) ikut jadi syarat pencarian, setiap kali
+            // nama yang ke-scan beda dikit (QR vs manual vs placeholder),
+            // Laravel bakal nganggep itu user baru -> numpuk jadi banyak
+            // baris duplikat untuk NIM yang sama, yang ujung-ujungnya bikin
+            // JOIN di dashboard admin meledak jadi dobel-dobel.
+            $user = User::updateOrCreate(
+                ['users_nim' => $identifier],
+                [
+                    'users_name'       => $userName,
+                    'users_department' => $department,
+                    'status_del'       => '0',
+                ]
+            );
+
+            // 1 token unik per sesi login - dipakai buat nandai semua baris
+            // ai_usage_logs yang terjadi selama sesi login ini (lihat trackUsage()).
+            // Dengan ini, admin dashboard bisa dedupe "tool yang sama diklik
+            // berkali-kali dalam 1 sesi" secara akurat tanpa nebak-nebak jeda waktu.
+            $loginSessionToken = (string) Str::uuid();
+
+            // Reset daftar tool yang sudah ter-log. PENTING: ini dilakukan di SINI
+            // (bukan cuma di logout()), supaya kalau device/kiosk yang sama dipakai
+            // gonta-ganti mahasiswa tanpa logout eksplisit, mahasiswa berikutnya
+            // tidak mewarisi daftar tool mahasiswa sebelumnya (yang bisa bikin
+            // klik tool pertamanya malah ke-skip nggak kecatet).
+            $freshSessionData = [
+                'login_session_token' => $loginSessionToken,
+                'logged_tools'        => [],
+            ];
 
             // Simpan session sesuai identitas (mahasiswa atau staff)
             if ($isStaff) {
-                session([
+                session(array_merge([
                     'user_id'       => $user->users_id,
                     'staff_id'      => $identifier,
                     'student_name'  => $userName,
                     'student_major' => $department,
-                    'login_source'  => $loginSource
-                ]);
+                    'login_source'  => $loginSource,
+                ], $freshSessionData));
             } else {
-                session([
+                session(array_merge([
                     'user_id'       => $user->users_id,
                     'student_nim'   => $identifier,
                     'student_name'  => $userName,
                     'student_major' => $department,
-                    'login_source'  => $loginSource
-                ]);
+                    'login_source'  => $loginSource,
+                ], $freshSessionData));
             }
 
             $intendedAiId = session('intended_ai_id');
@@ -178,28 +202,44 @@ class AIDashboardController extends Controller
             return redirect()->route('student.login.page'); // Sesuaikan dengan route halaman login kamu
         }
 
-        // Lock atomik di level database - anti race condition,
-        // gak peduli berapa request nyaris bersamaan yang masuk
-        $lock = Cache::store('database')->lock("ai_visit_{$nim}_{$id}", 5);
+        $loggedTools = session('logged_tools', []);
 
-        if ($lock->get()) {
+        if (!in_array($id, $loggedTools)) {
             try {
-                $loggedTools = session('logged_tools', []);
-                if (!in_array($id, $loggedTools)) {
-                    AiUsageLog::create([
-                        'student_nim'  => $nim,
-                        'ai_tool_name' => $aiTool->ai_name,
-                    ]);
-                    $loggedTools[] = $id;
-                    session(['logged_tools' => $loggedTools]);
+                AiUsageLog::create([
+                    'student_nim'         => $nim,
+                    'ai_tool_name'        => $aiTool->ai_name,
+                    'login_session_token' => session('login_session_token'),
+                ]);
+            } catch (\Illuminate\Database\QueryException $e) {
+                // Unique constraint (student_nim + ai_tool_name + login_session_token)
+                // kena bentrok. Ini SENGAJA dibiarkan, bukan dianggap error -
+                // artinya ada request lain (hampir bersamaan, misal gara-gara
+                // browser/extension yang nge-fetch link ini lebih dari sekali)
+                // yang sudah lebih dulu nulis baris yang sama persis.
+                // Daripada andalkan session doang (yang kebukti bisa race),
+                // DB sendiri yang jadi penentu akhir - duplikat beneran DITOLAK
+                // di sini, bukan cuma "biasanya" dicegah di level aplikasi.
+                if (!$this->isDuplicateKeyError($e)) {
+                    throw $e;
                 }
-            } finally {
-                $lock->release();
             }
+
+            $loggedTools[] = $id;
+            session(['logged_tools' => $loggedTools]);
         }
-        // kalau lock gagal didapat -> ada request lain lagi proses barengan, skip logging, tetap redirect
 
         return redirect()->away($aiTool->ai_url);
+    }
+
+    /**
+     * Cek apakah QueryException ini disebabkan oleh pelanggaran unique
+     * constraint (duplicate entry) - bukan error lain yang perlu dilempar ulang.
+     */
+    private function isDuplicateKeyError(\Illuminate\Database\QueryException $e): bool
+    {
+        // 1062 = kode error "Duplicate entry" di MySQL/MariaDB
+        return (int) ($e->errorInfo[1] ?? 0) === 1062;
     }
 
     public function closeSession(Request $request)
@@ -210,7 +250,16 @@ class AIDashboardController extends Controller
     public function logout()
     {
         // Cukup bersihkan session dan kembalikan ke halaman login/utama
-        session()->forget(['user_id', 'student_nim', 'staff_id', 'student_name', 'student_major', 'login_source', 'logged_tools']);
+        session()->forget([
+            'user_id',
+            'student_nim',
+            'staff_id',
+            'student_name',
+            'student_major',
+            'login_source',
+            'logged_tools',
+            'login_session_token',
+        ]);
 
         return redirect('/');
     }

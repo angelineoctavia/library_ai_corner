@@ -18,6 +18,6 @@ class AiUsageLog extends Model
     protected $fillable = [
         'student_nim',
         'ai_tool_name',
-        'usage_logs_duration_minutes',
+        'login_session_token',
     ];
 }

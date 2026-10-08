@@ -127,10 +127,10 @@
             opacity: 0.85;
         }
 
-        /* KPI Cards Grid — 3 kolom (logic dari code kedua) */
+        /* KPI Cards Grid — 2 kolom */
         .kpi-container {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(2, 1fr);
             gap: 20px;
             margin-bottom: 30px;
         }
@@ -158,10 +158,10 @@
             font-weight: 700;
         }
 
-        /* Analytics Section Layout */
+        /* Analytics Section Layout — sekarang cuma 2 panel (Peak Hours dihapus) */
         .analytics-grid {
             display: grid;
-            grid-template-columns: 1fr 1.2fr 0.8fr;
+            grid-template-columns: 1.4fr 1fr;
             gap: 20px;
         }
 
@@ -221,7 +221,7 @@
     <div class="main-container">
         <h2 class="title">Dashboard</h2>
 
-        <!-- Filter & Excel Download Form (logic pake $startDate / $endDate dari code kedua) -->
+        <!-- Filter & Excel Download Form -->
         <form method="GET" action="{{ route('admin.dashboard') }}">
             <div class="filter-section">
                 <div class="input-group-date">
@@ -253,12 +253,8 @@
             </div>
         @endif
 
-        <!-- 3 KPI Cards (logic dari code kedua) -->
+        <!-- 2 KPI Cards -->
         <div class="kpi-container">
-            <div class="kpi-card">
-                <h4>Most Popular AI Today</h4>
-                <h2>{{ $aiPopulerHariIni }}</h2>
-            </div>
             <div class="kpi-card">
                 <h4>Top Favorite AI</h4>
                 <h2>{{ $aiFavorit }}</h2>
@@ -269,16 +265,8 @@
             </div>
         </div>
 
-        <!-- Charts & Table Grid -->
+        <!-- Charts & Table Grid (Peak Hours Trend dihapus) -->
         <div class="analytics-grid">
-
-            <!-- Tren Jam Sibuk (Line Chart) -->
-            <div class="panel-box">
-                <h4>Peak Hours Trend</h4>
-                <div style="position: relative; flex-grow: 1; min-height: 200px;">
-                    <canvas id="lineChart"></canvas>
-                </div>
-            </div>
 
             <!-- Riwayat Akses (Table) -->
             <div class="panel-box">
@@ -298,14 +286,14 @@
                             @forelse($riwayat as $row)
                                 <tr>
                                     <td>{{ $row->users_nim }}</td>
-                                    <td>{{ $row->users_major }}</td>
+                                    <td>{{ $row->users_department }}</td>
                                     <td>{{ \Carbon\Carbon::parse($row->created_at)->format('Y-m-d') }}</td>
                                     <td>{{ \Carbon\Carbon::parse($row->created_at)->format('H:i') }}</td>
                                     <td>{{ $row->ai_tool_name }}</td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="4" style="text-align: center; color: #777;">Belum ada riwayat akses.
+                                    <td colspan="5" style="text-align: center; color: #777;">Belum ada riwayat akses.
                                     </td>
                                 </tr>
                             @endforelse
@@ -317,8 +305,7 @@
             <!-- Proporsi Penggunaan AI (Pie Chart) -->
             <div class="panel-box">
                 <h4>AI Usage Proportion</h4>
-                <div
-                    style="position: relative; flex-grow: 1; min-height: 200px; display: flex; justify-content: center; align-items: center;">
+                <div style="position: relative; height: 250px; width: 100%;">
                     <canvas id="pieChart"></canvas>
                 </div>
             </div>
@@ -328,46 +315,8 @@
 
     <!-- Chart.js & Validation Script -->
     <script>
-        const chartJamData = @json($chartJam);
         const pieLabelsData = @json($pieLabels);
         const pieValuesData = @json($pieValues);
-
-        // Line Chart (Tren Jam Sibuk)
-        const ctxLine = document.getElementById('lineChart').getContext('2d');
-        new Chart(ctxLine, {
-            type: 'line',
-            data: {
-                labels: ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00',
-                    '18:00', '19:00', '20:00'
-                ],
-                datasets: [{
-                    label: 'Jumlah Klik AI',
-                    data: chartJamData,
-                    borderColor: '#f27d00',
-                    backgroundColor: 'rgba(242, 125, 0, 0.2)',
-                    fill: true,
-                    tension: 0.3,
-                    borderWidth: 2
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            precision: 0
-                        }
-                    }
-                }
-            }
-        });
 
         // Pie Chart (Proporsi Penggunaan AI)
         const ctxPie = document.getElementById('pieChart').getContext('2d');
@@ -405,15 +354,17 @@
         const startDateInput = document.getElementById('startDate');
         const endDateInput = document.getElementById('endDate');
 
-        startDateInput.addEventListener('change', function() {
-            endDateInput.min = this.value;
-            if (endDateInput.value && endDateInput.value < this.value) {
-                endDateInput.value = '';
-            }
-        });
+        if (startDateInput && endDateInput) {
+            startDateInput.addEventListener('change', function() {
+                endDateInput.min = this.value;
+                if (endDateInput.value && endDateInput.value < this.value) {
+                    endDateInput.value = '';
+                }
+            });
 
-        if (startDateInput.value) {
-            endDateInput.min = startDateInput.value;
+            if (startDateInput.value) {
+                endDateInput.min = startDateInput.value;
+            }
         }
     </script>
 </body>

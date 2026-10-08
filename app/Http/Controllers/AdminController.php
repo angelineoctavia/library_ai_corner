@@ -27,66 +27,107 @@ class AdminController extends Controller
         $startDate = $request->input('start_date');
         $endDate = $request->input('end_date');
 
-        $query = AiUsageLog::join('users', 'ai_usage_logs.student_nim', '=', 'users.users_nim');
+        // ===========================================================
+        // DEDUPE LOGIC
+        // Setiap login sukses generate 1 login_session_token (uuid) yang
+        // disimpan di session lalu ikut ditulis ke setiap baris
+        // ai_usage_logs selama sesi itu (lihat
+        // AIDashboardController::processLogin & trackUsage). Jadi tool
+        // yang sama yang diklik berkali-kali dalam 1 sesi login dihitung
+        // SEKALI saja (ambil waktu akses paling awal).
+        //
+        // Data lama (sebelum kolom login_session_token ada) tokennya NULL,
+        // jadi di-fallback dikelompokkan per (NIM + tool + tanggal) sebagai
+        // best-effort, karena batas sesi aslinya memang tidak tersimpan.
+        // ===========================================================
+        $dedupedSub = DB::table(DB::raw("(
+            SELECT
+                student_nim,
+                ai_tool_name,
+                MIN(created_at) AS created_at
+            FROM ai_usage_logs
+            WHERE ai_tool_name != 'Login Session'
+            GROUP BY
+                student_nim,
+                ai_tool_name,
+                COALESCE(login_session_token, CONCAT('legacy-', DATE(created_at)))
+        ) AS deduped_logs"));
+
+        $query = (clone $dedupedSub)
+            ->join('users', 'deduped_logs.student_nim', '=', 'users.users_nim');
 
         if ($startDate && $endDate) {
-            $query->whereBetween('ai_usage_logs.created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
+            $query->whereBetween('deduped_logs.created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
         }
 
-        // 1. KPI: AI Terpopuler Hari Ini
-        $aiPopulerHariIni = AiUsageLog::whereDate('created_at', Carbon::today())
-            ->select('ai_tool_name', DB::raw('count(*) as total'))
-            ->groupBy('ai_tool_name')
+        // 1. KPI: AI Paling Favorit (Sesuai Filter).
+        // Default-nya cuma tampilkan 1 nama teratas. HANYA kalau semua tool
+        // punya total penggunaan yang benar-benar sama rata (full tie),
+        // baru semua nama digabung koma.
+        $aiFavoritData = (clone $query)
+            ->select('deduped_logs.ai_tool_name', DB::raw('count(*) as total'))
+            ->groupBy('deduped_logs.ai_tool_name')
             ->orderByDesc('total')
-            ->first()->ai_tool_name ?? '-';
+            ->get();
+        $aiFavorit = $this->formatTopNames($aiFavoritData);
 
-        // 2. KPI: AI Paling Favorit (Sesuai Filter)
-        $aiFavorit = (clone $query)->select('ai_tool_name', DB::raw('count(*) as total'))
-            ->groupBy('ai_tool_name')
-            ->orderByDesc('total')
-            ->first()->ai_tool_name ?? '-';
-
-        // 3. KPI: Jurusan Terbanyak
-        $jurusanTerbanyak = (clone $query)->select('users.users_department', DB::raw('count(*) as total'))
+        // 2. KPI: Jurusan Terbanyak (unique student_nim, bukan jumlah log)
+        $jurusanTerbanyak = (clone $query)
+            ->select('users.users_department', DB::raw('count(DISTINCT deduped_logs.student_nim) as total'))
             ->groupBy('users.users_department')
             ->orderByDesc('total')
             ->first()->users_department ?? '-';
 
-        // 4. Data Line Chart (Jam Sibuk) — total klik per jam
-        $jamSibukData = (clone $query)
-            ->select(DB::raw('HOUR(ai_usage_logs.created_at) as hour'), DB::raw('count(*) as total'))
-            ->groupBy('hour')
-            ->pluck('total', 'hour')->toArray();
-
-        $chartJam = [];
-        for ($i = 8; $i <= 20; $i++) {
-            $chartJam[] = $jamSibukData[$i] ?? 0;
-        }
-
-        // 5. Data Pie Chart (Proporsi AI)
-        $pieDataRaw = (clone $query)->select('ai_tool_name', DB::raw('count(*) as total'))
-            ->groupBy('ai_tool_name')
+        // 3. Data Pie Chart (Proporsi AI) - sudah deduped per sesi
+        $pieDataRaw = (clone $query)
+            ->select('deduped_logs.ai_tool_name', DB::raw('count(*) as total'))
+            ->groupBy('deduped_logs.ai_tool_name')
             ->get();
         $pieLabels = $pieDataRaw->pluck('ai_tool_name')->toArray();
         $pieValues = $pieDataRaw->pluck('total')->toArray();
 
-        // 6. Tabel Riwayat Akses
-        $riwayat = (clone $query)->select('users.users_nim', 'users.users_department', 'ai_usage_logs.created_at', 'ai_usage_logs.ai_tool_name')
-            ->orderByDesc('ai_usage_logs.created_at')
-            ->limit(10)
+        // 4. Tabel Riwayat Akses - sudah deduped per sesi, SEMUA baris
+        // (nggak di-limit) karena admin nggak punya akses langsung ke DB,
+        // jadi tabel ini harus jadi sumber lengkapnya. Scroll ditangani
+        // sama CSS .table-responsive (max-height + overflow-y: auto).
+        $riwayat = (clone $query)
+            ->select(
+                'users.users_nim',
+                'users.users_department',
+                'deduped_logs.created_at',
+                'deduped_logs.ai_tool_name'
+            )
+            ->orderByDesc('deduped_logs.created_at')
             ->get();
 
         return view('admin.dashboard', compact(
             'startDate',
             'endDate',
-            'aiPopulerHariIni',
             'aiFavorit',
             'jurusanTerbanyak',
-            'chartJam',
             'pieLabels',
             'pieValues',
             'riwayat'
         ));
+    }
+
+    /**
+     * Tampilkan semua ai_tool_name yang total-nya SAMA DENGAN nilai
+     * tertinggi (handle seri/tie di posisi puncak), dipisah koma.
+     * Kalau cuma 1 yang tertinggi, ya tampil 1 nama itu aja.
+     */
+    private function formatTopNames($collection)
+    {
+        if ($collection->isEmpty()) {
+            return '-';
+        }
+
+        $max = $collection->max('total');
+
+        return $collection
+            ->where('total', $max)
+            ->pluck('ai_tool_name')
+            ->implode(', ');
     }
 
     public function exportExcel(Request $request)
@@ -102,7 +143,11 @@ class AdminController extends Controller
             return redirect()->back()->withErrors(['export_error' => 'Tanggal "Sampai" tidak boleh lebih awal dari tanggal "Dari"!']);
         }
 
+        // NOTE: export ini sengaja TETAP pakai raw log (tanpa dedupe sesi),
+        // karena ini laporan/audit trail mentah. Kalau mau disamain dengan
+        // dashboard (deduped per sesi), tinggal bilang.
         $query = AiUsageLog::join('users', 'ai_usage_logs.student_nim', '=', 'users.users_nim')
+            ->where('ai_usage_logs.ai_tool_name', '!=', 'Login Session')
             ->select('ai_usage_logs.*', 'users.users_department');
 
         if ($exportStart && $exportEnd) {
