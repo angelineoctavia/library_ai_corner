@@ -4,8 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Corner - Scan Your ID</title>
-    <!-- SweetAlert2 untuk Pop-up interaktif -->
+    <title>AI Corner - Login with Google</title>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         * {
@@ -27,7 +26,6 @@
             position: relative;
         }
 
-        /* Tombol Back di Pojok Kiri Atas */
         .back-btn {
             position: absolute;
             top: 40px;
@@ -40,14 +38,13 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: background 0.2s;
+            transition: opacity 0.2s;
         }
 
         .back-btn:hover {
-            color: rgba(255, 255, 255, 0.25);
+            opacity: 0.6;
         }
 
-        /* Container Utama */
         .login-container {
             display: flex;
             width: 100%;
@@ -56,10 +53,8 @@
             align-items: center;
             padding: 0 40px;
             z-index: 10;
-            margin-top: -20px;
         }
 
-        /* Maskot & Animasi Floating */
         .mascot-container {
             position: relative;
             display: flex;
@@ -86,41 +81,13 @@
             }
         }
 
-        .mascot-wrapper::before {
-            content: '';
-            position: absolute;
-            width: 400px;
-            height: 350px;
-            background: radial-gradient(circle, rgba(151, 252, 255, 0.75) 0%, rgba(151, 252, 255, 0.3) 45%, transparent 70%);
-            border-radius: 50%;
-            z-index: -1;
-            filter: blur(35px);
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-        }
-
         .mascot-login {
-            width: 550px;
+            width: 400px;
             position: relative;
-            left: -50px;
+            left: -15px;
             filter: drop-shadow(0 20px 30px rgba(0, 0, 0, 0.65));
         }
 
-        .mascot-shadow {
-            left: 35%;
-            bottom: -10px;
-            width: 180px;
-            height: 18px;
-            background: rgba(0, 0, 0, 0.8);
-            border-radius: 50%;
-            filter: blur(6px);
-            position: absolute;
-            transform: translateX(-50%);
-            z-index: 1;
-        }
-
-        /* Kotak Glassmorphism */
         .login-box-wrapper {
             position: relative;
             display: flex;
@@ -145,118 +112,53 @@
             z-index: 2;
         }
 
-        /* Efek Glow Biru & Gambar Bawah_Login di bawah container */
-        .login-box-glow {
-            position: absolute;
-            bottom: -60px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 380px;
-            height: 120px;
-            background: radial-gradient(ellipse at center, rgba(151, 252, 255, 0.5) 0%, rgba(50, 150, 200, 0.15) 50%, transparent 70%);
-            filter: blur(25px);
-            z-index: 1;
-            pointer-events: none;
-        }
-
-        .bawah-login-img {
-            position: absolute;
-            bottom: -220px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 220px;
-            z-index: 3;
-            pointer-events: none;
-            filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.5));
-        }
-
         .login-title {
             font-size: 26px;
             font-weight: bold;
-            margin-bottom: 20px;
+            margin-bottom: 30px;
             color: #ffca7a;
             text-shadow: 0 0 8px rgba(255, 202, 122, 0.9), 0 0 18px rgba(255, 177, 66, 0.8);
             text-align: center;
         }
 
-        .scanner-img {
-            width: 130px;
-            margin-bottom: 20px;
-            filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.5));
-        }
-
-        .manual-link-text {
-            color: #adb5bd;
-            font-size: 13px;
-            text-align: center;
-        }
-
-        .manual-link-text a {
-            color: #ffca7a;
+        /* Tombol Google Login Mewah */
+        .btn-google {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            background: #ffffff;
+            color: #333333;
+            width: 100%;
+            padding: 14px 20px;
+            border-radius: 12px;
             text-decoration: none;
-            font-weight: 600;
-        }
-
-        .manual-link-text a:hover {
-            text-decoration: underline;
-        }
-
-        #scanner-input {
-            position: absolute;
-            opacity: 0;
-            pointer-events: none;
-        }
-
-        .manual-form-container {
-            display: none;
-            flex-direction: column;
-            width: 100%;
-            gap: 15px;
-        }
-
-        .manual-input {
-            width: 100%;
-            background: rgba(255, 255, 255, 0.95);
-            border: 1px solid rgba(255, 255, 255, 0.4);
-            border-radius: 12px;
-            padding: 14px 18px;
-            color: #2c2c2c;
-            font-size: 16px;
-            font-weight: 500;
-            outline: none;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        }
-
-        .btn-submit-manual {
-            width: 100%;
-            background: linear-gradient(135deg, #ff9f43 0%, #ff7675 100%);
-            border: none;
-            border-radius: 12px;
-            padding: 14px;
-            color: #ffffff;
-            font-size: 16px;
             font-weight: bold;
-            cursor: pointer;
-            box-shadow: 0 8px 20px rgba(255, 159, 67, 0.4);
-            transition: transform 0.2s, box-shadow 0.2s;
+            font-size: 16px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+            transition: transform 0.2s, background 0.2s;
         }
 
-        .btn-submit-manual:hover {
+        .btn-google:hover {
+            background: #f1f3f4;
             transform: scale(1.02);
-            box-shadow: 0 10px 25px rgba(255, 159, 67, 0.6);
         }
 
-        .back-to-scan {
-            color: #adb5bd;
+        /* Petunjuk di bawah tombol Google */
+        .login-hint {
+            margin-top: 22px;
             font-size: 13px;
+            line-height: 1.6;
             text-align: center;
-            cursor: pointer;
-            margin-top: 5px;
-            text-decoration: underline;
+            color: #d8e6ea;
         }
 
-        .back-to-scan:hover {
-            color: #ffffff;
+        .login-hint strong {
+            color: #ffca7a;
+        }
+
+        .login-hint .warn {
+            color: #ff9f9f;
         }
 
         .bottom-bar {
@@ -278,204 +180,56 @@
     <a href="{{ url('/') }}" class="back-btn" onclick="event.preventDefault(); window.history.back();">&lsaquo;</a>
 
     <div class="login-container">
-        <!-- Maskot Yucca dengan Animasi Floating -->
+        <!-- Maskot Yucca -->
         <div class="mascot-container">
             <div class="mascot-wrapper">
-                <img src="{{ asset('images/Yucca_Student_Login.png') }}" alt="Mascot Yucca" class="mascot-login">
+                <img src="{{ asset('images/yucca_cloud.png') }}" alt="Mascot Yucca" class="mascot-login">
             </div>
-            <div class="mascot-shadow"></div>
         </div>
 
-        <!-- Kotak Utama & Elemen Bawah -->
+        <!-- Kotak Utama Login Google -->
         <div class="login-box-wrapper">
             <div class="login-box">
-                <!-- Mode Scan QR -->
-                <div id="scan-view" style="display: flex; flex-direction: column; align-items: center; width: 100%;">
-                    <div class="login-title">Please Scan Your ID</div>
-                    <img src="{{ asset('images/Scanner.png') }}" alt="Scanner Device" class="scanner-img">
-                    <div class="manual-link-text">
-                        if you cannot login with QR, <a href="#" id="trigger-manual">click here</a>
-                    </div>
-                </div>
+                <div class="login-title">Welcome to AI Corner</div>
 
-                <!-- Mode Manual Input -->
-                <div id="manual-view" class="manual-form-container">
-                    <div class="login-title" style="font-size: 24px; margin-bottom: 15px;">Manual Login</div>
-                    <input type="text" id="manual-nim-input" class="manual-input" placeholder="Enter NIM/ Staff ID">
-                    <div
-                        style="font-size: 12px; color: #adb5bd; margin-top: -8px; margin-bottom: 5px; text-align: left;">
-                        *Only accepts numeric input
-                    </div>
-                    <button type="button" id="btn-manual-submit" class="btn-submit-manual">Login</button>
-                    <div class="back-to-scan" id="trigger-scan">Back to QR Scanner</div>
-                </div>
+                <!-- Tombol Google OAuth -->
+                <a href="{{ route('auth.google') }}" class="btn-google">
+                    <svg width="20" height="20" viewBox="0 0 24 24">
+                        <path fill="#4285F4"
+                            d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z" />
+                        <path fill="#34A853"
+                            d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.19v3.15C3.17 21.32 7.23 24 12 24z" />
+                        <path fill="#FBBC05"
+                            d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.19C.43 8.12 0 9.87 0 11.7c0 1.83.43 3.58 1.19 5.12l4.09-2.55z" />
+                        <path fill="#EA4335"
+                            d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.23 0 3.17 2.68 1.19 6.58l4.09 3.15c.95-2.83 3.6-4.98 6.72-4.98z" />
+                    </svg>
+                    Login with Google
+                </a>
 
-                <!-- Input tersembunyi untuk Scanner Fisik -->
-                <input type="text" id="scanner-input" autocomplete="off">
+                <p class="login-hint">
+                    Please login with your <strong>university email</strong><br>
+                    On the Google screen, choose <strong>"Use another account"</strong>.<br>
+                    <span class="warn">Never click an account that isn't yours.</span>
+                </p>
             </div>
-            <!-- Efek Glow Biru & Gambar Bawah_Login.png -->
-            <div class="login-box-glow"></div>
-            <img src="{{ asset('images/Bawah_Login.png') }}" alt="Bottom Element" class="bawah-login-img">
         </div>
     </div>
 
     <div class="bottom-bar"></div>
 
-    <script>
-        const scannerInput = document.getElementById('scanner-input');
-        const scanView = document.getElementById('scan-view');
-        const manualView = document.getElementById('manual-view');
-        const triggerManual = document.getElementById('trigger-manual');
-        const triggerScan = document.getElementById('trigger-scan');
-        const manualNimInput = document.getElementById('manual-nim-input');
-        const btnManualSubmit = document.getElementById('btn-manual-submit');
+    {{-- Pesan error dari proses login Google (misal: email di luar domain kampus) --}}
+    @if (session('error') || $errors->any())
+        <script>
+            Swal.fire({
+                icon: 'error',
+                title: 'Login Failed',
+                text: @json(session('error') ?? $errors->first()),
+                confirmButtonColor: '#ff9f43',
+                heightAuto: false
+            });
+        </script>
+    @endif
 
-        // Fokus otomatis konstan untuk scanner fisik
-        function keepFocus() {
-            if (manualView.style.display !== 'flex' && !Swal.isVisible()) {
-                scannerInput.focus();
-            }
-        }
-        setInterval(keepFocus, 100);
-        document.addEventListener('click', () => {
-            if (manualView.style.display !== 'flex' && !Swal.isVisible()) {
-                scannerInput.focus();
-            }
-        });
-
-        // Tangkap data dari Scanner Fisik (Beri parameter sumber 'qr')
-        scannerInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                let scannedData = scannerInput.value.trim();
-                scannerInput.value = '';
-                if (scannedData) {
-                    processLogin(scannedData, 'qr');
-                }
-            }
-        });
-
-        triggerManual.addEventListener('click', (e) => {
-            e.preventDefault();
-            scanView.style.display = 'none';
-            manualView.style.display = 'flex';
-            manualNimInput.focus();
-        });
-
-        triggerScan.addEventListener('click', () => {
-            manualView.style.display = 'none';
-            scanView.style.display = 'flex';
-            scannerInput.focus();
-        });
-
-        // Hanya izinkan tombol angka (0-9) saat diketik di input manual
-        manualNimInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                btnManualSubmit.click();
-                return;
-            }
-            if (e.key < '0' || e.key > '9') {
-                e.preventDefault();
-            }
-        });
-
-        // Pencegahan ekstra (mencegah paste huruf atau simbol)
-        manualNimInput.addEventListener('input', function(e) {
-            this.value = this.value.replace(/\D/g, '');
-        });
-
-        // Tombol submit manual (Beri parameter sumber 'manual')
-        btnManualSubmit.addEventListener('click', () => {
-            let identifier = manualNimInput.value.trim();
-            if (!identifier) return;
-
-            processLogin(identifier, 'manual');
-        });
-
-        let isLoggingIn = false;
-
-        // Fungsi AJAX POST ke Laravel Backend dengan parameter source ('qr' atau 'manual')
-        function processLogin(identifier, source) {
-            if (isLoggingIn) return; // cegah double scan / double klik
-            isLoggingIn = true;
-
-            fetch("{{ route('student.login.submit') }}", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "X-CSRF-TOKEN": "{{ csrf_token() }}"
-                    },
-                    body: JSON.stringify({
-                        identifier: identifier,
-                        source: source
-                    })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        // Buka tab AI yang tadi diklik sebelum login (kalau ada)
-                        if (data.open_ai_url) {
-                            window.open(data.open_ai_url, 'ai_tab_' + data.open_ai_id);
-                        }
-
-                        // Kalau nama cuma placeholder "Student (123)" / "Staff (123)",
-                        // tampilkan NIM/Staff ID-nya aja. Kalau ada nama dari scanner, pakai nama.
-                        const rawId = identifier.split('+')[0].trim();
-                        const isPlaceholder = /^(Student|Staff) \(/.test(data.name);
-                        const shownName = isPlaceholder ? rawId : data.name;
-
-                        Swal.fire({
-                            icon: 'success',
-                            title: `Welcome, ${shownName}!`,
-                            text: 'Login successful. Redirecting...',
-                            timer: 1500,
-                            showConfirmButton: false,
-                            heightAuto: false
-                        });
-
-                        // Redirect pakai setTimeout biasa, JANGAN nunggu Swal .then():
-                        // kalau tab ini sudah ke-background (karena tab AI kebuka),
-                        // animasi Swal bisa macet dan redirect-nya ikut tertahan.
-                        setTimeout(() => {
-                            window.location.href = data.redirect_url;
-                        }, 1500);
-                    } else {
-                        isLoggingIn = false;
-
-                        // Pesan khusus jika discan via QR fisik vs input manual
-                        let errorText = data.message || 'NIM atau jurusan tidak dikenali dalam sistem.';
-                        let errorTitle = 'Login Failed';
-
-                        if (source === 'qr') {
-                            errorTitle = 'QR Code Not Recognized';
-                            errorText = "Use Universitas Ciputra's official ID card or QR code!";
-                        }
-
-                        Swal.fire({
-                            icon: 'error',
-                            title: errorTitle,
-                            text: errorText,
-                            confirmButtonColor: '#ff9f43',
-                            heightAuto: false
-                        }).then(() => {
-                            scannerInput.value = '';
-                            manualNimInput.value = '';
-                        });
-                    }
-                })
-                .catch(error => {
-                    isLoggingIn = false;
-                    console.error('Error:', error);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Oops!',
-                        text: 'Something went wrong. Please try again.',
-                        confirmButtonColor: '#ff9f43',
-                        heightAuto: false,
-                        scrollbarPadding: false
-                    });
-                });
-        }
-    </script>
 </body>
-
 </html>

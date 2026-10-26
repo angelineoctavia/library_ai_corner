@@ -10,9 +10,10 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id('users_id');
-            $table->string('users_nim');
-            $table->string('users_name')->nullable();
-            $table->string('users_department');
+            $table->string('users_name');
+            $table->string('email')->unique();
+            $table->string('google_id')->nullable();
+            $table->string('users_department'); // 'Student' atau 'Staff'
             $table->timestamp('created_at')->useCurrent();
             $table->string('status_del', 1)->default('0');
         });

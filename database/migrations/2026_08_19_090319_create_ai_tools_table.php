@@ -13,6 +13,8 @@ return new class extends Migration
             $table->string('ai_name');
             $table->string('ai_icon'); // Lokasi file icon
             $table->string('ai_url');
+            $table->text('ai_description')->nullable(); // Untuk mouse over / tooltip singkat
+            $table->text('ai_guide')->nullable();      // Untuk detail panduan / halaman khusus
             $table->timestamp('created_at')->useCurrent();
             $table->string('status_del', 1)->default('0');
         });

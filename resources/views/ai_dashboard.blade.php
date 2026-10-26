@@ -199,7 +199,7 @@
 
         .mascot {
             position: absolute;
-            bottom: 35px;
+            bottom: 15px;
             right: 45px;
             width: 320px;
             z-index: 20;
@@ -221,6 +221,215 @@
         .admin-link:hover {
             color: #ffb142;
             text-decoration: underline;
+        }
+
+        /* Tombol Feedback (di bar bawah, kiri) */
+        .feedback-bar {
+            position: absolute;
+            bottom: 12px;
+            left: 40px;
+            z-index: 30;
+            display: flex;
+            gap: 10px;
+        }
+
+        .feedback-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 202, 122, 0.55);
+            color: #ffca7a;
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.2s;
+        }
+
+        .feedback-btn:hover {
+            background: rgba(255, 202, 122, 0.2);
+            transform: translateY(-1px);
+        }
+
+        /* Modal Feedback */
+        .feedback-box {
+            width: 440px;
+            text-align: left;
+        }
+
+        .feedback-box textarea {
+            width: 100%;
+            min-height: 120px;
+            resize: vertical;
+            padding: 10px 12px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            font-family: inherit;
+            font-size: 14px;
+            color: #2c2c2c;
+            outline: none;
+        }
+
+        .feedback-box textarea:focus {
+            border-color: #F27D00;
+        }
+
+        .feedback-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 6px 0 14px 0;
+            font-size: 12px;
+            color: #888;
+        }
+
+        .feedback-status {
+            min-height: 16px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .feedback-status.error {
+            color: #d63031;
+        }
+
+        .feedback-status.success {
+            color: #27ae60;
+        }
+
+        .feedback-box .feedback-hint {
+            margin-bottom: 12px;
+        }
+
+        /* Tooltip deskripsi AI (hover) */
+        .ai-tooltip {
+            position: fixed;
+            z-index: 10000;
+            max-width: 260px;
+            padding: 10px 14px;
+            background: rgba(20, 20, 20, 0.92);
+            color: #ffffff;
+            border: 1px solid rgba(255, 202, 122, 0.5);
+            border-radius: 12px;
+            font-size: 12.5px;
+            line-height: 1.45;
+            white-space: pre-line;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.45);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+        }
+
+        .ai-tooltip.show {
+            opacity: 1;
+        }
+
+        .ai-tooltip strong {
+            display: block;
+            color: #ffca7a;
+            font-size: 13px;
+            margin-bottom: 3px;
+        }
+
+        /* Tombol "i" kecil di pojok icon AI */
+        .ai-icon-wrap {
+            position: relative;
+            width: 90px;
+            height: 90px;
+        }
+
+        .ai-info-btn {
+            position: absolute;
+            top: -7px;
+            right: -7px;
+            z-index: 5;
+            width: 24px;
+            height: 24px;
+            padding: 0;
+            border-radius: 50%;
+            background: rgba(20, 20, 20, 0.9);
+            border: 1.5px solid #ffca7a;
+            color: #ffca7a;
+            font-family: Georgia, 'Times New Roman', serif;
+            font-style: italic;
+            font-weight: bold;
+            font-size: 14px;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+            transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease;
+        }
+
+        .ai-info-btn:hover {
+            background: #ffca7a;
+            color: #1a1a1a;
+            transform: scale(1.15);
+        }
+
+        /* Pop-up info AI (deskripsi + panduan lengkap) */
+        .idle-modal-box.info-box {
+            width: 480px;
+            max-width: 92vw;
+            max-height: 80vh;
+            text-align: left;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .idle-modal-box .info-head {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .idle-modal-box .info-head img {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            object-fit: cover;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .idle-modal-box .info-head h3 {
+            margin: 0;
+            font-size: 20px;
+        }
+
+        .info-desc {
+            font-size: 13.5px;
+            color: #555;
+            line-height: 1.5;
+            margin-bottom: 14px;
+            white-space: pre-line;
+        }
+
+        .info-guide-title {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+            color: #F27D00;
+            margin-bottom: 6px;
+        }
+
+        .info-guide {
+            font-size: 13.5px;
+            color: #333;
+            line-height: 1.55;
+            white-space: pre-line;
+            overflow-y: auto;
+            max-height: 38vh;
+            padding-right: 6px;
+            margin-bottom: 18px;
+        }
+
+        .info-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
         }
 
         /* Idle Warning Modal */
@@ -275,13 +484,19 @@
         .idle-stay-btn:hover {
             opacity: 0.9;
         }
+
+        .idle-stay-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 
 <body>
 
-    {{-- $studentNim berisi NIM mahasiswa ATAU Staff ID (lihat index() di controller) --}}
-    @if ($studentNim)
+    {{-- $userEmail = email user yang sedang login (null kalau belum login).
+         Dipakai sebagai penanda "sudah login" di seluruh halaman ini. --}}
+    @if ($userEmail)
         <div class="logout-container">
             <form id="logout-form" action="{{ route('student.logout') }}" method="POST">
                 @csrf
@@ -302,15 +517,9 @@
             <span>UC Library's AI Corner!</span>
         </div>
 
-        @if ($studentNim)
+        @if ($userEmail)
             <div class="student-nim-display">
-                @if (session('scanned_name'))
-                    {{-- Login lewat scanner: tampilkan nama --}}
-                    Welcome, <span style="color: #ffb142;">{{ session('scanned_name') }}</span>
-                @else
-                    {{-- Login manual: tampilkan NIM / Staff ID --}}
-                    Welcome, {{ $studentNim }} &bull; <span style="color: #ffb142;">{{ $studentMajor }}</span>
-                @endif
+                Welcome, <span style="color: #ffb142;">{{ $displayName }}</span> &bull; {{ $userType }}
             </div>
         @endif
 
@@ -318,11 +527,23 @@
             <div class="ai-icons-scroll">
                 @foreach ($aiTools as $tool)
                     <div class="ai-item">
-                        <a href="{{ route('ai.visit', $tool->ai_id) }}" id="ai-icon-{{ $tool->ai_id }}"
-                            @if ($studentNim) onclick="openAiTool(event, this.href, {{ $tool->ai_id }})" @endif
-                            class="ai-icon-card" title="{{ $tool->ai_name }}">
-                            <img src="{{ asset('storage/' . $tool->ai_icon) }}" alt="{{ $tool->ai_name }}">
-                        </a>
+                        <div class="ai-icon-wrap">
+                            <a href="{{ route('ai.visit', $tool->ai_id) }}" id="ai-icon-{{ $tool->ai_id }}"
+                                @if ($userEmail) onclick="openAiTool(event, this.href, {{ $tool->ai_id }})" @endif
+                                class="ai-icon-card" aria-label="{{ $tool->ai_name }}" data-name="{{ $tool->ai_name }}"
+                                data-description="{{ $tool->ai_description }}">
+                                <img src="{{ asset('storage/' . $tool->ai_icon) }}" alt="{{ $tool->ai_name }}">
+                            </a>
+
+                            {{-- Tombol "i": hanya muncul kalau AI ini punya deskripsi / panduan --}}
+                            @if (filled($tool->ai_description) || filled($tool->ai_guide))
+                                <button type="button" class="ai-info-btn" aria-label="About {{ $tool->ai_name }}"
+                                    data-id="{{ $tool->ai_id }}" data-name="{{ $tool->ai_name }}"
+                                    data-description="{{ $tool->ai_description }}" data-guide="{{ $tool->ai_guide }}"
+                                    data-icon="{{ asset('storage/' . $tool->ai_icon) }}"
+                                    data-url="{{ route('ai.visit', $tool->ai_id) }}">i</button>
+                            @endif
+                        </div>
                         <div class="ai-name">{{ $tool->ai_name }}</div>
                     </div>
                 @endforeach
@@ -331,29 +552,54 @@
 
         <div class="bottom-bar"></div>
 
-        <img src="{{ asset('images/Yucca_Futuristic.png') }}" alt="Mascot" class="mascot">
+        {{-- 2 tombol feedback (dipisah biar usulan AI & keluhan nggak tercampur). Hanya muncul kalau sudah login. --}}
+        @if ($userEmail)
+            <div class="feedback-bar">
+                <button type="button" class="feedback-btn" data-feedback="ai_request">Suggest an AI</button>
+                <button type="button" class="feedback-btn" data-feedback="complaint">Complaints &amp; Feedback</button>
+            </div>
+        @endif
+
+        <img src="{{ asset('images/yucca_standee_official.png') }}" alt="Mascot" class="mascot">
         <a href="{{ route('admin.login') }}" class="admin-link">Admin Login</a>
 
         <!-- Idle Warning Modal -->
-        @if ($studentNim)
+        @if ($userEmail)
             <div id="idle-modal" class="idle-modal-overlay">
                 <div class="idle-modal-box">
-                    <h3>Masih di sini?</h3>
-                    <p>Sesi akan otomatis logout dalam <span id="idle-countdown">30</span> detik.</p>
-                    <button type="button" id="idle-stay-btn" class="idle-stay-btn">Ya, Lanjutkan</button>
+                    <h3>Still here?</h3>
+                    <p>Session will automatically logout in <span id="idle-countdown">30</span> seconds.</p>
+                    <button type="button" id="idle-stay-btn" class="idle-stay-btn">Yes, continue</button>
                 </div>
             </div>
 
             <div id="logout-confirm-overlay" class="idle-modal-overlay">
                 <div class="idle-modal-box">
-                    <h3>Yakin ingin logout?</h3>
-                    <p>Pastikan semua tab AI tools sudah kamu tutup manual sebelum logout ya, dikarenakan beberapa
-                        tool
-                        terkadang tidak bisa ditutup otomatis oleh sistem. Terima kasih.</p>
+                    <h3>Are you sure you want to log out?</h3>
+                    <p>Please make sure to close all active AI tool tabs manually before logging out, as some tools may
+                        not close automatically. Thank you.</p>
                     <div style="display:flex; gap:10px; justify-content:center;">
                         <button type="button" id="logout-cancel-btn" class="idle-stay-btn"
-                            style="background:#6c757d;">Batal</button>
-                        <button type="button" id="logout-confirm-btn" class="idle-stay-btn">Ya, Logout</button>
+                            style="background:#6c757d;">Cancel</button>
+                        <button type="button" id="logout-confirm-btn" class="idle-stay-btn">Yes, Logout</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Feedback -->
+            <div id="feedback-overlay" class="idle-modal-overlay">
+                <div class="idle-modal-box feedback-box">
+                    <h3 id="feedback-title">Feedback</h3>
+                    <p id="feedback-hint" class="feedback-hint"></p>
+                    <textarea id="feedback-message" maxlength="1000"></textarea>
+                    <div class="feedback-meta">
+                        <span id="feedback-status" class="feedback-status"></span>
+                        <span id="feedback-counter">0/1000</span>
+                    </div>
+                    <div style="display:flex; gap:10px; justify-content:flex-end;">
+                        <button type="button" id="feedback-cancel-btn" class="idle-stay-btn"
+                            style="background:#6c757d;">Cancel</button>
+                        <button type="button" id="feedback-submit-btn" class="idle-stay-btn">Send</button>
                     </div>
                 </div>
             </div>
@@ -416,7 +662,7 @@
                 openOrFocusAiTab(toolId, url);
             }
 
-            @if ($studentNim && request()->has('reacquire_tab'))
+            @if ($userEmail && request()->has('reacquire_tab'))
                 // Baru selesai login dari klik icon AI: sambungkan referensi ke tab AI
                 // yang sudah dibuka halaman login (atau buka kalau belum ada).
                 (function() {
@@ -455,7 +701,7 @@
                 );
             }
 
-            @if ($studentNim)
+            @if ($userEmail)
                 // IDLE TIMEOUT (pause saat dashboard tidak aktif)
                 let idleTimer, countdownTimer, countdownVal;
                 const IDLE_LIMIT_MS = 15 * 60 * 1000; // 15 menit tanpa aktivitas DI DASHBOARD -> warning
@@ -484,12 +730,52 @@
                     }, 1000);
                 }
 
+                // UBAH KE true DI PC PERPUS. Biar login session tdk tersimpan, mencegah menggunakan akun org lain.
+                const SIGN_OUT_GOOGLE_ON_LOGOUT = false;
+
+                /*
+                 * Logout aplikasi. Kalau SIGN_OUT_GOOGLE_ON_LOGOUT = true, sekalian coba
+                 * keluarkan login Google di browser ini (best effort), supaya akun mahasiswa
+                 * ini nggak nyangkut di pilihan akun Google buat orang berikutnya.
+                 *
+                 * Logout Google dibuka di jendela kecil (bukan di halaman ini), ditutup
+                 * otomatis, baru form logout aplikasi dikirim. Kalau jendelanya di-block
+                 * browser, logout aplikasi tetap jalan seperti biasa.
+                 */
+                function logoutNow() {
+                    sendCloseSessionBeacon();
+                    closeAllOpenedAiTabs();
+
+                    const form = document.getElementById('logout-form');
+
+                    if (!SIGN_OUT_GOOGLE_ON_LOGOUT) {
+                        form.submit();
+                        return;
+                    }
+
+                    let googleWin = null;
+                    try {
+                        googleWin = window.open('https://accounts.google.com/Logout', 'google_signout',
+                            'width=420,height=320');
+                    } catch (e) {}
+
+                    if (!googleWin) {
+                        form.submit();
+                        return;
+                    }
+
+                    setTimeout(() => {
+                        try {
+                            googleWin.close();
+                        } catch (e) {}
+                        form.submit();
+                    }, 2500);
+                }
+
                 function forceLogout() {
                     clearInterval(countdownTimer);
                     clearTimeout(idleTimer);
-                    sendCloseSessionBeacon();
-                    closeAllOpenedAiTabs();
-                    document.getElementById('logout-form').submit();
+                    logoutNow();
                 }
 
                 document.getElementById('idle-stay-btn').addEventListener('click', () => {
@@ -509,10 +795,7 @@
                 document.getElementById('logout-confirm-btn').addEventListener('click', () => {
                     document.getElementById('logout-confirm-overlay').style.display = 'none';
 
-                    sendCloseSessionBeacon();
-                    closeAllOpenedAiTabs();
-
-                    document.getElementById('logout-form').submit();
+                    logoutNow();
                 });
 
                 // Aktivitas DI DASHBOARD reset timer
@@ -545,8 +828,238 @@
                     sendCloseSessionBeacon();
                     closeAllOpenedAiTabs();
                 });
+
+                // ================== FEEDBACK ==================
+                const FEEDBACK_TEXT = {
+                    ai_request: {
+                        title: 'Suggest a New AI Tool',
+                        hint: 'Enter the name of the AI tool you would like to see and why it should be added.',
+                        placeholder: 'e.g., Gemini, to help summarize research papers...'
+                    },
+                    complaint: {
+                        title: 'Feedback & Complaints',
+                        hint: 'Let us know about any issues, feedback, or suggestions regarding the AI Corner.',
+                        placeholder: 'Type your feedback or complaint here...'
+                    }
+                };
+
+                const feedbackOverlay = document.getElementById('feedback-overlay');
+                const feedbackMessage = document.getElementById('feedback-message');
+                const feedbackStatus = document.getElementById('feedback-status');
+                const feedbackCounter = document.getElementById('feedback-counter');
+                const feedbackSubmit = document.getElementById('feedback-submit-btn');
+                let feedbackCategory = null;
+
+                function setFeedbackStatus(text, type) {
+                    feedbackStatus.textContent = text || '';
+                    feedbackStatus.className = 'feedback-status' + (type ? ' ' + type : '');
+                }
+
+                function openFeedback(category) {
+                    feedbackCategory = category;
+                    const t = FEEDBACK_TEXT[category];
+                    document.getElementById('feedback-title').textContent = t.title;
+                    document.getElementById('feedback-hint').textContent = t.hint;
+                    feedbackMessage.placeholder = t.placeholder;
+                    feedbackMessage.value = '';
+                    feedbackCounter.textContent = '0/1000';
+                    setFeedbackStatus('');
+                    feedbackSubmit.disabled = false;
+                    feedbackOverlay.style.display = 'flex';
+                    feedbackMessage.focus();
+                }
+
+                function closeFeedback() {
+                    feedbackOverlay.style.display = 'none';
+                    feedbackCategory = null;
+                }
+
+                document.querySelectorAll('[data-feedback]').forEach(btn => {
+                    btn.addEventListener('click', () => openFeedback(btn.dataset.feedback));
+                });
+
+                document.getElementById('feedback-cancel-btn').addEventListener('click', closeFeedback);
+
+                document.addEventListener('keydown', e => {
+                    if (e.key === 'Escape' && feedbackOverlay.style.display === 'flex') {
+                        closeFeedback();
+                    }
+                });
+
+                feedbackMessage.addEventListener('input', () => {
+                    feedbackCounter.textContent = feedbackMessage.value.length + '/1000';
+                    setFeedbackStatus('');
+                });
+
+                feedbackSubmit.addEventListener('click', () => {
+                    const message = feedbackMessage.value.trim();
+                    if (message.length < 5) {
+                        setFeedbackStatus('Pesan terlalu pendek (minimal 5 karakter).', 'error');
+                        return;
+                    }
+
+                    feedbackSubmit.disabled = true;
+                    setFeedbackStatus('Mengirim...', '');
+
+                    fetch('{{ route('feedback.store') }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                            },
+                            body: JSON.stringify({
+                                category: feedbackCategory,
+                                message: message
+                            })
+                        })
+                        .then(async res => {
+                            const data = await res.json().catch(() => ({}));
+                            if (res.ok && data.success) {
+                                setFeedbackStatus('Terima kasih! Masukan kamu sudah terkirim.', 'success');
+                                setTimeout(closeFeedback, 1500);
+                                return;
+                            }
+                            const firstError = data.errors ? Object.values(data.errors)[0][0] : null;
+                            setFeedbackStatus(firstError || data.message || 'Gagal mengirim. Coba lagi.',
+                                'error');
+                            feedbackSubmit.disabled = false;
+                        })
+                        .catch(() => {
+                            setFeedbackStatus('Gagal mengirim. Cek koneksi lalu coba lagi.', 'error');
+                            feedbackSubmit.disabled = false;
+                        });
+                });
             @endif
         </script>
 
+        {{-- Tooltip deskripsi AI saat hover. Sengaja di luar kotak kaca (glass-box) supaya tidak terpotong overflow. --}}
+        <div id="ai-tooltip" class="ai-tooltip" role="tooltip"></div>
+
+        {{-- Pop-up info AI: deskripsi + panduan lengkap (dibuka lewat tombol "i") --}}
+        <div id="info-overlay" class="idle-modal-overlay">
+            <div class="idle-modal-box info-box">
+                <div class="info-head">
+                    <img id="info-icon" src="" alt="">
+                    <h3 id="info-title"></h3>
+                </div>
+                <div id="info-desc" class="info-desc"></div>
+                <div id="info-guide-wrap">
+                    <div class="info-guide-title">Guide</div>
+                    <div id="info-guide" class="info-guide"></div>
+                </div>
+                <div class="info-actions">
+                    <button type="button" id="info-close-btn" class="idle-stay-btn"
+                        style="background:#6c757d;">Close</button>
+                    <button type="button" id="info-open-btn" class="idle-stay-btn">Open tool</button>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            (function() {
+                const tip = document.getElementById('ai-tooltip');
+
+                function showTip(card) {
+                    const desc = (card.dataset.description || '').trim();
+                    if (!desc) return; // belum ada deskripsi -> tidak ada tooltip
+
+                    tip.innerHTML = '';
+                    tip.appendChild(document.createTextNode(desc));
+
+                    tip.classList.add('show');
+                    const r = card.getBoundingClientRect();
+                    const w = tip.offsetWidth,
+                        h = tip.offsetHeight;
+                    let left = r.left + r.width / 2 - w / 2;
+                    left = Math.max(8, Math.min(left, window.innerWidth - w - 8));
+                    let top = r.top - h - 12;
+                    if (top < 8) top = r.bottom + 12; // mentok atas -> taruh di bawah icon
+                    tip.style.left = left + 'px';
+                    tip.style.top = top + 'px';
+                }
+
+                function hideTip() {
+                    tip.classList.remove('show');
+                }
+
+                document.querySelectorAll('.ai-icon-card').forEach(card => {
+                    card.addEventListener('mouseenter', () => showTip(card));
+                    card.addEventListener('mouseleave', hideTip);
+                    card.addEventListener('click', hideTip);
+                });
+
+                const scroller = document.querySelector('.ai-icons-scroll');
+                if (scroller) scroller.addEventListener('scroll', hideTip);
+            })();
+
+            // Pop-up info AI (tombol "i")
+            (function() {
+                const IS_LOGGED_IN = {{ $userEmail ? 'true' : 'false' }};
+
+                const overlay = document.getElementById('info-overlay');
+                const iconEl = document.getElementById('info-icon');
+                const titleEl = document.getElementById('info-title');
+                const descEl = document.getElementById('info-desc');
+                const guideWrap = document.getElementById('info-guide-wrap');
+                const guideEl = document.getElementById('info-guide');
+                const openBtn = document.getElementById('info-open-btn');
+                let current = null;
+
+                function openInfo(btn) {
+                    current = {
+                        id: btn.dataset.id,
+                        url: btn.dataset.url
+                    };
+                    iconEl.src = btn.dataset.icon || '';
+                    iconEl.alt = btn.dataset.name || '';
+                    titleEl.textContent = btn.dataset.name || '';
+
+                    const desc = (btn.dataset.description || '').trim();
+                    const guide = (btn.dataset.guide || '').trim();
+
+                    descEl.textContent = desc;
+                    descEl.style.display = desc ? '' : 'none';
+                    guideEl.textContent = guide;
+                    guideWrap.style.display = guide ? '' : 'none';
+
+                    overlay.style.display = 'flex';
+                }
+
+                function closeInfo() {
+                    overlay.style.display = 'none';
+                    current = null;
+                }
+
+                document.querySelectorAll('.ai-info-btn').forEach(btn => {
+                    btn.addEventListener('click', () => openInfo(btn));
+                });
+
+                document.getElementById('info-close-btn').addEventListener('click', closeInfo);
+
+                overlay.addEventListener('click', e => {
+                    if (e.target === overlay) closeInfo();
+                });
+
+                document.addEventListener('keydown', e => {
+                    if (e.key === 'Escape' && overlay.style.display === 'flex') closeInfo();
+                });
+
+                openBtn.addEventListener('click', () => {
+                    if (!current) return;
+                    const {
+                        id,
+                        url
+                    } = current;
+                    closeInfo();
+
+                    if (IS_LOGGED_IN) {
+                        openOrFocusAiTab(id, url); // buka / fokus ke tab AI
+                    } else {
+                        window.location.href = url; // belum login -> diarahkan ke halaman login
+                    }
+                });
+            })();
+        </script>
 </body>
 </html>

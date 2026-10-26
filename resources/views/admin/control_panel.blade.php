@@ -78,15 +78,31 @@
             border: 1px solid rgba(151, 252, 255, 0.4);
             border-radius: 24px;
             backdrop-filter: blur(18px);
-            padding: 35px;
+            padding: 30px 35px;
             box-shadow: 0 20px 45px rgba(0, 0, 0, 0.45), 0 0 25px rgba(151, 252, 255, 0.15);
             display: flex;
             flex-direction: column;
+            /* Form sekarang lebih panjang (ada Description & Guide): kalau layar pendek, scroll di dalam box */
+            max-height: calc(100vh - 250px);
+            overflow-y: auto;
+        }
+
+        .glass-box::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .glass-box::-webkit-scrollbar-thumb {
+            background: rgba(242, 125, 0, 0.5);
+            border-radius: 10px;
+        }
+
+        .glass-box::-webkit-scrollbar-track {
+            background: transparent;
         }
 
         .form-group {
             width: 100%;
-            margin-bottom: 20px;
+            margin-bottom: 16px;
         }
 
         .form-group label {
@@ -95,6 +111,12 @@
             color: #ffca7a;
             margin-bottom: 8px;
             font-weight: 500;
+        }
+
+        .field-hint {
+            color: rgba(255, 255, 255, 0.55);
+            font-weight: 400;
+            font-size: 12px;
         }
 
         .input-wrapper input {
@@ -109,9 +131,31 @@
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
         }
 
+        .input-wrapper textarea {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 12px;
+            padding: 12px 18px;
+            color: #2c2c2c;
+            font-family: inherit;
+            font-size: 14px;
+            outline: none;
+            resize: vertical;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .char-count {
+            display: block;
+            text-align: right;
+            color: #adb5bd;
+            font-size: 11px;
+            margin-top: 4px;
+        }
+
         .logo-upload-box {
             width: 100%;
-            min-height: 220px;
+            min-height: 150px;
             background: rgba(255, 255, 255, 0.95);
             border: 2px dashed rgba(255, 159, 67, 0.6);
             border-radius: 20px;
@@ -119,7 +163,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 25px 20px;
+            padding: 16px 20px;
             cursor: pointer;
             transition: all 0.2s ease;
         }
@@ -408,6 +452,24 @@
                     </div>
 
                     <div class="form-group">
+                        <label>Short Description <span class="field-hint">(optional, shown on hover)</span></label>
+                        <div class="input-wrapper">
+                            <textarea name="ai_description" id="ai-description-input" rows="2" maxlength="255"
+                                placeholder="e.g., Helps you find and summarize academic papers"></textarea>
+                        </div>
+                        <small class="char-count" id="desc-count">0/255</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Detailed Guide <span class="field-hint">(optional, shown in the info
+                                pop-up)</span></label>
+                        <div class="input-wrapper">
+                            <textarea name="ai_guide" id="ai-guide-input" rows="3" maxlength="5000"
+                                placeholder="Tips, limits, how to log in, step-by-step usage..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
                         <label>Logo</label>
                         <div class="logo-upload-box" id="drop-zone">
                             <div class="upload-icon-container" onclick="document.getElementById('file-input').click();">
@@ -479,24 +541,27 @@
                                             <div class="action-btns">
                                                 <button type="button" class="btn-edit"
                                                     data-id="{{ $tool->ai_id ?? $tool->id }}"
-                                                    data-name="{{ $tool->ai_name }}" data-url="{{ $tool->ai_url }}">
+                                                    data-name="{{ $tool->ai_name }}" data-url="{{ $tool->ai_url }}"
+                                                    data-description="{{ $tool->ai_description }}"
+                                                    data-guide="{{ $tool->ai_guide }}">
                                                     Edit
                                                 </button>
 
-                                                <form action="{{ route('admin.ai.delete', $tool->ai_id ?? $tool->id) }}"
+                                                <form
+                                                    action="{{ route('admin.ai.delete', $tool->ai_id ?? $tool->id) }}"
                                                     method="POST" class="delete-form" style="display:inline;">
                                                     @csrf
                                                     @method('DELETE')
                                                     <button type="button"
-                                                        class="btn-delete btn-trigger-delete">Delete</button>
+                                                        class="btn-delete btn-trigger-delete">Inactivate</button>
                                                 </form>
                                             </div>
                                         </td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="3" style="text-align:center; color:#777;">Belum ada AI tool
-                                            aktif.</td>
+                                        <td colspan="3" style="text-align:center; color:#777;">No AI tool active.
+                                        </td>
                                     </tr>
                                 @endforelse
                             </tbody>
@@ -527,15 +592,15 @@
                                                     method="POST" style="display:inline;">
                                                     @csrf
                                                     @method('PUT')
-                                                    <button type="submit" class="btn-restore">Restore</button>
+                                                    <button type="submit" class="btn-restore">Activate</button>
                                                 </form>
                                             </div>
                                         </td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="3" style="text-align:center; color:#777;">Belum ada AI tool
-                                            nonaktif.</td>
+                                        <td colspan="3" style="text-align:center; color:#777;">No inactive AI tool
+                                            at the moment.</td>
                                     </tr>
                                 @endforelse
                             </tbody>
@@ -551,15 +616,15 @@
             style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(4px); z-index: 9999; justify-content: center; align-items: center;">
             <div
                 style="background: #ffffff; padding: 25px 30px; border-radius: 16px; width: 350px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2); animation: fadeIn 0.3s ease;">
-                <h3 style="margin-bottom: 10px; color: #2c2c2c; font-size: 18px;">Konfirmasi Hapus</h3>
-                <p style="color: #666; font-size: 14px; margin-bottom: 20px;">Yakin ingin menghapus AI
-                    ini?</p>
+                <h3 style="margin-bottom: 10px; color: #2c2c2c; font-size: 18px;">Inactivation Confirmation</h3>
+                <p style="color: #666; font-size: 14px; margin-bottom: 20px;">Are you sure you want to inactivate this
+                    AI Tool?</p>
                 <div style="display: flex; justify-content: center; gap: 10px;">
                     <button type="button" id="cancel-delete-btn"
-                        style="padding: 8px 16px; border: 1px solid #ddd; background: #f8f9fa; color: #333; border-radius: 8px; cursor: pointer; font-weight: 500;">Batal</button>
+                        style="padding: 8px 16px; border: 1px solid #ddd; background: #f8f9fa; color: #333; border-radius: 8px; cursor: pointer; font-weight: 500;">Cancel</button>
                     <button type="button" id="confirm-delete-btn"
-                        style="padding: 8px 16px; border: none; background: #ff4757; color: white; border-radius: 8px; cursor: pointer; font-weight: 500;">Ya,
-                        Hapus</button>
+                        style="padding: 8px 16px; border: none; background: #ff4757; color: white; border-radius: 8px; cursor: pointer; font-weight: 500;">Yes,
+                        inactivate</button>
                 </div>
             </div>
         </div>
@@ -574,9 +639,13 @@
     const fileNameDisplay = document.getElementById('file-name');
     const removeFileBtn = document.getElementById('remove-file-btn');
     const aiForm = document.getElementById('ai-form');
+    const formBox = document.querySelector('.glass-box');
 
     const aiNameInput = document.getElementById('ai-name-input');
     const aiUrlInput = document.getElementById('ai-url-input');
+    const aiDescInput = document.getElementById('ai-description-input');
+    const aiGuideInput = document.getElementById('ai-guide-input');
+    const descCount = document.getElementById('desc-count');
     const aiIdInput = document.getElementById('ai-id-input');
     const formMethod = document.getElementById('form-method');
     const formSectionTitle = document.getElementById('form-section-title');
@@ -589,6 +658,11 @@
 
     let isEditMode = false;
     let isSubmitting = false;
+
+    function updateDescCount() {
+        descCount.textContent = aiDescInput.value.length + '/255';
+    }
+    aiDescInput.addEventListener('input', updateDescCount);
 
     function handleFile(file) {
         if (file) {
@@ -610,6 +684,9 @@
             aiIdInput.value = id;
             aiNameInput.value = name;
             aiUrlInput.value = url;
+            aiDescInput.value = this.getAttribute('data-description') || '';
+            aiGuideInput.value = this.getAttribute('data-guide') || '';
+            updateDescCount();
 
             aiForm.action = `/admin/ai/update/${id}`;
             formMethod.value = 'PUT';
@@ -623,7 +700,7 @@
             aiNameInput.style.borderColor = '';
             aiUrlInput.style.borderColor = '';
 
-            window.scrollTo({
+            formBox.scrollTo({
                 top: 0,
                 behavior: 'smooth'
             });
@@ -641,6 +718,9 @@
         aiIdInput.value = '';
         aiNameInput.value = '';
         aiUrlInput.value = '';
+        aiDescInput.value = '';
+        aiGuideInput.value = '';
+        updateDescCount();
 
         formSectionTitle.textContent = 'Upload';
         submitBtnText.textContent = 'Save AI Tool';
@@ -789,5 +869,4 @@
         });
     });
 </script>
-
 </html>

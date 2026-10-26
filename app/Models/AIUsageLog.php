@@ -16,8 +16,12 @@ class AiUsageLog extends Model
     const UPDATED_AT = null;
 
     protected $fillable = [
-        'student_nim',
+        'user_email',
         'ai_tool_name',
         'login_session_token',
+        'login_at',
+        'logout_at',
+        'ip_address',
+        'location',
     ];
 }

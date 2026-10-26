@@ -3,131 +3,97 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\AiUsageLog;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 use App\Models\AiTool;
+use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 
 class AdminController extends Controller
 {
     const ADMIN_TABLE = 'admins';
 
-    public function dashboard(Request $request)
+    public function dashboard()
     {
         if (!session()->has('is_admin')) {
             return redirect()->route('admin.login');
         }
 
-        $startDate = $request->input('start_date');
-        $endDate = $request->input('end_date');
+        // Semua baris dikirim SEKALI ke view. Filter tanggal, filter kolom,
+        // sort, KPI, dan chart dikerjakan di browser (JS).
+        $rows = $this->getAccessRows()->map(fn($r) => [
+            'email'      => $r->email,
+            'type'       => $r->type, // 'Student' / 'Staff'
+            'tool'       => $r->ai_tool_name,
+            'created_at' => $r->created_at,
+            'login_at'   => $r->login_at,
+            'logout_at'  => $r->logout_at,
+            'session'    => $r->login_session_token,
+            'ip'         => $r->ip_address,
+            'location'   => $r->location, // boleh null (belum ditentukan PC-nya)
+        ])->values();
 
-        // ===========================================================
-        // DEDUPE LOGIC
-        // Setiap login sukses generate 1 login_session_token (uuid) yang
-        // disimpan di session lalu ikut ditulis ke setiap baris
-        // ai_usage_logs selama sesi itu (lihat
-        // AIDashboardController::processLogin & trackUsage). Jadi tool
-        // yang sama yang diklik berkali-kali dalam 1 sesi login dihitung
-        // SEKALI saja (ambil waktu akses paling awal).
-        //
-        // Data lama (sebelum kolom login_session_token ada) tokennya NULL,
-        // jadi di-fallback dikelompokkan per (NIM + tool + tanggal) sebagai
-        // best-effort, karena batas sesi aslinya memang tidak tersimpan.
-        // ===========================================================
-        $dedupedSub = DB::table(DB::raw("(
-            SELECT
-                student_nim,
-                ai_tool_name,
-                MIN(created_at) AS created_at
-            FROM ai_usage_logs
-            WHERE ai_tool_name != 'Login Session'
-            GROUP BY
-                student_nim,
-                ai_tool_name,
-                COALESCE(login_session_token, CONCAT('legacy-', DATE(created_at)))
-        ) AS deduped_logs"));
+        // Mengambil data feedback untuk ditampilkan di tab/tabel dashboard admin
+        $feedbacks = DB::table('feedbacks')
+            ->orderByDesc('created_at')
+            ->get(['user_email as email', 'category', 'message', 'created_at']);
 
-        $query = (clone $dedupedSub)
-            ->join('users', 'deduped_logs.student_nim', '=', 'users.users_nim');
-
-        if ($startDate && $endDate) {
-            $query->whereBetween('deduped_logs.created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
-        }
-
-        // 1. KPI: AI Paling Favorit (Sesuai Filter).
-        // Default-nya cuma tampilkan 1 nama teratas. HANYA kalau semua tool
-        // punya total penggunaan yang benar-benar sama rata (full tie),
-        // baru semua nama digabung koma.
-        $aiFavoritData = (clone $query)
-            ->select('deduped_logs.ai_tool_name', DB::raw('count(*) as total'))
-            ->groupBy('deduped_logs.ai_tool_name')
-            ->orderByDesc('total')
-            ->get();
-        $aiFavorit = $this->formatTopNames($aiFavoritData);
-
-        // 2. KPI: Jurusan Terbanyak (unique student_nim, bukan jumlah log)
-        $jurusanTerbanyak = (clone $query)
-            ->select('users.users_department', DB::raw('count(DISTINCT deduped_logs.student_nim) as total'))
-            ->groupBy('users.users_department')
-            ->orderByDesc('total')
-            ->orderBy('users.users_department')
-            ->first()->users_department ?? '-';
-
-        // 3. Data Pie Chart (Proporsi AI) - sudah deduped per sesi
-        $pieDataRaw = (clone $query)
-            ->select('deduped_logs.ai_tool_name', DB::raw('count(*) as total'))
-            ->groupBy('deduped_logs.ai_tool_name')
-            ->get();
-        $pieLabels = $pieDataRaw->pluck('ai_tool_name')->toArray();
-        $pieValues = $pieDataRaw->pluck('total')->toArray();
-
-        // 4. Tabel Riwayat Akses - sudah deduped per sesi, SEMUA baris
-        // (nggak di-limit) karena admin nggak punya akses langsung ke DB,
-        // jadi tabel ini harus jadi sumber lengkapnya. Scroll ditangani
-        // sama CSS .table-responsive (max-height + overflow-y: auto).
-        $riwayat = (clone $query)
-            ->select(
-                'users.users_nim',
-                'users.users_department',
-                'deduped_logs.created_at',
-                'deduped_logs.ai_tool_name'
-            )
-            ->orderByDesc('deduped_logs.created_at')
-            ->get();
-
-        return view('admin.dashboard', compact(
-            'startDate',
-            'endDate',
-            'aiFavorit',
-            'jurusanTerbanyak',
-            'pieLabels',
-            'pieValues',
-            'riwayat'
-        ));
+        return view('admin.dashboard', compact('rows', 'feedbacks'));
     }
 
-    /**
-     * Tampilkan semua ai_tool_name yang total-nya SAMA DENGAN nilai
-     * tertinggi (handle seri/tie di posisi puncak), dipisah koma.
-     * Kalau cuma 1 yang tertinggi, ya tampil 1 nama itu aja.
-     */
-    private function formatTopNames($collection)
+    private function getAccessRows(?string $startDate = null, ?string $endDate = null)
     {
-        if ($collection->isEmpty()) {
-            return '-';
+        $query = DB::table(DB::raw("(
+            SELECT
+                user_email,
+                ai_tool_name,
+                MIN(created_at) AS created_at,
+                MIN(login_at)   AS login_at,
+                MAX(logout_at)  AS logout_at,
+                MIN(login_session_token) AS login_session_token,
+                MIN(ip_address) AS ip_address,
+                MIN(location)   AS location
+            FROM ai_usage_logs
+            WHERE COALESCE(status_del, '0') = '0'
+            GROUP BY
+                user_email,
+                ai_tool_name,
+                COALESCE(login_session_token, CONCAT('legacy-', DATE(created_at)))
+        ) AS deduped_logs"))
+            ->join('users', 'deduped_logs.user_email', '=', 'users.email');
+
+        if ($startDate) {
+            $query->where('deduped_logs.created_at', '>=', $startDate . ' 00:00:00');
+        }
+        if ($endDate) {
+            $query->where('deduped_logs.created_at', '<=', $endDate . ' 23:59:59');
         }
 
-        $max = $collection->max('total');
-
-        return $collection
-            ->where('total', $max)
-            ->pluck('ai_tool_name')
-            ->implode(', ');
+        return $query
+            ->select(
+                'users.email',
+                'deduped_logs.ai_tool_name',
+                'deduped_logs.created_at',
+                'deduped_logs.login_at',
+                'deduped_logs.logout_at',
+                'deduped_logs.login_session_token',
+                'deduped_logs.ip_address',
+                'deduped_logs.location'
+            )
+            ->orderByDesc('deduped_logs.created_at')
+            ->get()
+            ->map(function ($r) {
+                // Mendapatkan type user langsung dari domain email via method Model User
+                $r->type = User::typeFromEmail($r->email);
+                return $r;
+            });
     }
 
     public function exportExcel(Request $request)
@@ -136,30 +102,17 @@ class AdminController extends Controller
             return redirect()->route('admin.login');
         }
 
-        $exportStart = $request->query('start_date');
-        $exportEnd = $request->query('end_date');
+        $start = $request->query('start_date') ?: null;
+        $end = $request->query('end_date') ?: null;
 
-        if ($exportStart && $exportEnd && $exportStart > $exportEnd) {
-            return redirect()->back()->withErrors(['export_error' => 'Tanggal "Sampai" tidak boleh lebih awal dari tanggal "Dari"!']);
+        if ($start && $end && $start > $end) {
+            return redirect()->back()->withErrors(['export_error' => 'The "To" date cannot be earlier than the "From" date!']);
         }
 
-        // NOTE: export ini sengaja TETAP pakai raw log (tanpa dedupe sesi),
-        // karena ini laporan/audit trail mentah. Kalau mau disamain dengan
-        // dashboard (deduped per sesi), tinggal bilang.
-        $query = AiUsageLog::join('users', 'ai_usage_logs.student_nim', '=', 'users.users_nim')
-            ->where('ai_usage_logs.ai_tool_name', '!=', 'Login Session')
-            ->select('ai_usage_logs.*', 'users.users_department');
+        $rows = $this->getAccessRows($start, $end);
 
-        if ($exportStart && $exportEnd) {
-            $query->whereBetween('ai_usage_logs.created_at', [$exportStart . ' 00:00:00', $exportEnd . ' 23:59:59']);
-        } elseif ($exportStart) {
-            $query->whereDate('ai_usage_logs.created_at', '>=', $exportStart);
-        } elseif ($exportEnd) {
-            $query->whereDate('ai_usage_logs.created_at', '<=', $exportEnd);
-        }
-
-        $logs = $query->orderBy('ai_usage_logs.created_at', 'desc')->get();
-        $totalAllUsage = $logs->count();
+        $generatedAt = now()->format('Y-m-d H:i');
+        $periodLabel = $this->periodLabel($start, $end);
 
         $spreadsheet = new Spreadsheet();
         $headerStyle = [
@@ -167,91 +120,150 @@ class AdminController extends Controller
             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'FF9F43']],
             'alignment' => ['horizontal' => 'center'],
         ];
+        $headerRow = 6;
 
-        // SHEET 1: Riwayat Penggunaan AI
+        // =====================================================
+        // SHEET 1: Access History
+        // =====================================================
         $sheet1 = $spreadsheet->getActiveSheet();
-        $sheet1->setTitle('Riwayat Penggunaan');
+        $sheet1->setTitle('Access History');
+        $this->writeSheetMeta(
+            $sheet1,
+            'AI Corner - Access History Report',
+            $generatedAt,
+            $periodLabel,
+            'Session Start/End = login/logout time. AI Opened At = when that AI tool was opened. Blank = not recorded. Repeated clicks on the same AI tool within one login session are counted once.',
+            'J'
+        );
 
         $sheet1->fromArray(
-            ['No', 'NIM Mahasiswa', 'Jurusan', 'Nama AI Tool', 'Waktu Akses'],
+            ['No', 'Email', 'User Type', 'Date', 'Session Start', 'Session End', 'AI Opened At', 'AI Tool', 'IP Address', 'Location'],
             null,
-            'A1'
+            'A' . $headerRow
         );
-        $sheet1->getStyle('A1:E1')->applyFromArray($headerStyle);
+        $sheet1->getStyle("A{$headerRow}:J{$headerRow}")->applyFromArray($headerStyle);
 
-        $row = 2;
-        foreach ($logs as $index => $log) {
-            $sheet1->fromArray([
-                $index + 1,
-                $log->student_nim,
-                $log->users_department,
-                $log->ai_tool_name,
-                $log->created_at,
-            ], null, 'A' . $row);
-            $row++;
-        }
-        $sheet1->setAutoFilter('A1:E' . max(1, $row - 1));
-        foreach (range('A', 'E') as $col) {
-            $sheet1->getColumnDimension($col)->setAutoSize(true);
-        }
-        if ($row > 2) {
-            $sheet1->getStyle('A1:E' . ($row - 1))->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
-        }
+        $r = $headerRow + 1;
+        foreach ($rows as $i => $log) {
+            $created = Carbon::parse($log->created_at);
+            $createdSerial = ExcelDate::PHPToExcel($created);
 
-        // SHEET 2: Ringkasan Statistik
+            $sheet1->setCellValue("A{$r}", $i + 1);
+            $sheet1->setCellValueExplicit("B{$r}", (string) $log->email, DataType::TYPE_STRING);
+            $sheet1->setCellValue("C{$r}", $log->type);
+            $sheet1->setCellValue("D{$r}", floor($createdSerial));
+            if ($log->login_at) {
+                $sheet1->setCellValue("E{$r}", ExcelDate::PHPToExcel(Carbon::parse($log->login_at)));
+            }
+            if ($log->logout_at) {
+                $sheet1->setCellValue("F{$r}", ExcelDate::PHPToExcel(Carbon::parse($log->logout_at)));
+            }
+            $sheet1->setCellValue("G{$r}", $createdSerial - floor($createdSerial));
+            $sheet1->setCellValue("H{$r}", $log->ai_tool_name);
+            if ($log->ip_address) {
+                $sheet1->setCellValueExplicit("I{$r}", (string) $log->ip_address, DataType::TYPE_STRING);
+            }
+            if ($log->location) {
+                $sheet1->setCellValueExplicit("J{$r}", (string) $log->location, DataType::TYPE_STRING);
+            }
+            $r++;
+        }
+        $lastRow1 = max($headerRow, $r - 1);
+
+        if ($lastRow1 > $headerRow) {
+            $first = $headerRow + 1;
+            $sheet1->getStyle("D{$first}:D{$lastRow1}")->getNumberFormat()->setFormatCode('yyyy-mm-dd');
+            $sheet1->getStyle("E{$first}:F{$lastRow1}")->getNumberFormat()->setFormatCode('yyyy-mm-dd hh:mm');
+            $sheet1->getStyle("G{$first}:G{$lastRow1}")->getNumberFormat()->setFormatCode('hh:mm');
+        }
+        $this->finalizeSheet($sheet1, $headerRow, 'J', $lastRow1);
+
+        // =====================================================
+        // SHEET 2: AI Usage Summary
+        // =====================================================
+        $totalUsage = $rows->count();
+        $aiSummary = $rows->groupBy('ai_tool_name')
+            ->map(fn($g, $name) => [
+                'name'  => $name,
+                'total' => $g->count(),
+                'users' => $g->pluck('email')->unique()->count(),
+            ])
+            ->values()
+            ->sortBy([['total', 'desc'], ['name', 'asc']])
+            ->values();
+
         $sheet2 = $spreadsheet->createSheet();
-        $sheet2->setTitle('Ringkasan Statistik');
+        $sheet2->setTitle('AI Usage Summary');
+        $this->writeSheetMeta(
+            $sheet2,
+            'AI Corner - AI Usage Summary',
+            $generatedAt,
+            $periodLabel,
+            'Usage is counted once per AI tool per login session.',
+            'D'
+        );
+        $sheet2->fromArray(['AI Tool', 'Total Usage', 'Proportion (%)', 'Unique Users'], null, 'A' . $headerRow);
+        $sheet2->getStyle("A{$headerRow}:D{$headerRow}")->applyFromArray($headerStyle);
 
-        // Tabel 1: Statistik & Proporsi Berdasarkan AI Tool
-        $sheet2->fromArray(['Nama AI Tool', 'Total Penggunaan', 'Proporsi (%)', 'Jumlah User Unik'], null, 'A1');
-        $sheet2->getStyle('A1:D1')->applyFromArray($headerStyle);
-
-        $aiSummary = $logs->groupBy('ai_tool_name');
-        $rowAi = 2;
-        foreach ($aiSummary as $aiName => $items) {
-            $total = $items->count();
-            $percentage = $totalAllUsage > 0 ? round(($total / $totalAllUsage) * 100, 2) . '%' : '0%';
-            $uniqueUsers = $items->unique('student_nim')->count();
-
-            $sheet2->fromArray([$aiName, $total, $percentage, $uniqueUsers], null, 'A' . $rowAi);
-            $rowAi++;
+        $r = $headerRow + 1;
+        foreach ($aiSummary as $item) {
+            $sheet2->setCellValue("A{$r}", $item['name']);
+            $sheet2->setCellValue("B{$r}", $item['total']);
+            $sheet2->setCellValue("C{$r}", $totalUsage > 0 ? $item['total'] / $totalUsage : 0);
+            $sheet2->setCellValue("D{$r}", $item['users']);
+            $r++;
         }
-        if ($rowAi > 2) {
-            $sheet2->setAutoFilter('A1:D' . ($rowAi - 1));
-            $sheet2->getStyle('A1:D' . ($rowAi - 1))->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+        $lastRow2 = max($headerRow, $r - 1);
+        if ($lastRow2 > $headerRow) {
+            $first = $headerRow + 1;
+            $sheet2->getStyle("C{$first}:C{$lastRow2}")->getNumberFormat()->setFormatCode(NumberFormat::FORMAT_PERCENTAGE_00);
         }
+        $this->finalizeSheet($sheet2, $headerRow, 'D', $lastRow2);
 
-        // Tabel 2: Berdasarkan Jurusan (Kolom F - H)
-        $sheet2->fromArray(['Jurusan', 'Total Penggunaan', 'Jumlah User Unik'], null, 'F1');
-        $sheet2->getStyle('F1:H1')->applyFromArray($headerStyle);
+        // =====================================================
+        // SHEET 3: Feedback Summary
+        // =====================================================
+        $sheet3 = $spreadsheet->createSheet();
+        $sheet3->setTitle('Feedback');
+        $this->writeSheetMeta(
+            $sheet3,
+            'AI Corner - User Feedback & Suggestions',
+            $generatedAt,
+            $periodLabel,
+            'Collection of user suggestions and feedback submitted through AI Corner.',
+            'E'
+        );
 
-        // Urut berdasarkan user unik terbanyak (sama kayak KPI di dashboard)
-        $deptSummary = $logs->groupBy('users_department')
-            ->sortByDesc(fn($items) => $items->unique('student_nim')->count());
+        $sheet3->fromArray(['No', 'Email', 'Type', 'Message', 'Date'], null, 'A' . $headerRow);
+        $sheet3->getStyle("A{$headerRow}:E{$headerRow}")->applyFromArray($headerStyle);
 
-        $rowDept = 2;
-        foreach ($deptSummary as $dept => $items) {
-            $sheet2->fromArray([
-                $dept ?: 'Lainnya',
-                $items->count(),
-                $items->unique('student_nim')->count(),
-            ], null, 'F' . $rowDept);
-            $rowDept++;
+        $fbQuery = DB::table('feedbacks')->orderByDesc('created_at');
+        if ($start) $fbQuery->whereDate('created_at', '>=', $start);
+        if ($end)   $fbQuery->whereDate('created_at', '<=', $end);
+
+        $rowFb = $headerRow + 1;
+        foreach ($fbQuery->get() as $i => $f) {
+            $sheet3->setCellValue('A' . $rowFb, $i + 1);
+            $sheet3->setCellValueExplicit('B' . $rowFb, $f->user_email, DataType::TYPE_STRING);
+            $sheet3->setCellValue('C' . $rowFb, $f->category === 'ai_request' ? 'AI Suggestion' : 'Complaint / Feedback');
+            $sheet3->setCellValueExplicit('D' . $rowFb, $f->message, DataType::TYPE_STRING);
+            $sheet3->setCellValue('E' . $rowFb, $f->created_at);
+            $rowFb++;
         }
-        if ($rowDept > 2) {
-            $sheet2->setAutoFilter('F1:H' . ($rowDept - 1));
-            $sheet2->getStyle('F1:H' . ($rowDept - 1))->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+        $lastRow3 = max($headerRow, $rowFb - 1);
+        if ($lastRow3 > $headerRow) {
+            $sheet3->getStyle("D" . ($headerRow + 1) . ":D{$lastRow3}")->getAlignment()->setWrapText(true);
         }
+        $this->finalizeSheet($sheet3, $headerRow, 'E', $lastRow3);
+        $sheet3->getColumnDimension('D')->setWidth(60);
 
-        foreach (range('A', 'H') as $col) {
-            $sheet2->getColumnDimension($col)->setAutoSize(true);
-        }
-
+        // =====================================================
         $spreadsheet->setActiveSheetIndex(0);
-        $fileSuffix = ($exportStart || $exportEnd)
-            ? ($exportStart ?? 'awal') . '_sd_' . ($exportEnd ?? 'akhir')
+
+        $fileSuffix = ($start || $end)
+            ? ($start ?: 'start') . '_to_' . ($end ?: 'latest')
             : now()->format('Y-m-d_His');
-        $filename = 'Laporan_AI_Corner_' . $fileSuffix . '.xlsx';
+        $filename = 'AI_Corner_Report_' . $fileSuffix . '.xlsx';
 
         $writer = new Xlsx($spreadsheet);
 
@@ -259,8 +271,56 @@ class AdminController extends Controller
             $writer->save('php://output');
         }, $filename, [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
         ]);
+    }
+
+    private function periodLabel(?string $start, ?string $end): string
+    {
+        if ($start && $end) {
+            return "{$start} to {$end}";
+        }
+        if ($start) {
+            return "From {$start} (no end date)";
+        }
+        if ($end) {
+            return "Until {$end} (no start date)";
+        }
+
+        return 'All dates (no filter)';
+    }
+
+    private function writeSheetMeta($sheet, string $title, string $generatedAt, string $period, string $note, string $lastCol): void
+    {
+        $lines = [
+            1 => $title,
+            2 => "Report generated: {$generatedAt}",
+            3 => "Period: {$period}",
+            4 => $note,
+        ];
+
+        foreach ($lines as $row => $text) {
+            $sheet->mergeCells("A{$row}:{$lastCol}{$row}");
+            $sheet->setCellValue("A{$row}", $text);
+        }
+
+        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
+        $sheet->getStyle('A2:A3')->getFont()->setBold(true);
+        $sheet->getStyle('A4')->getFont()->setItalic(true);
+        $sheet->getStyle('A4')->getFont()->getColor()->setRGB('666666');
+    }
+
+    private function finalizeSheet($sheet, int $headerRow, string $lastCol, int $lastRow): void
+    {
+        if ($lastRow >= $headerRow) {
+            $sheet->setAutoFilter("A{$headerRow}:{$lastCol}{$lastRow}");
+            $sheet->getStyle("A{$headerRow}:{$lastCol}{$lastRow}")
+                ->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+        }
+        $sheet->freezePane('A' . ($headerRow + 1));
+
+        foreach (range('A', $lastCol) as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
     }
 
     public function controlPanel()
@@ -309,6 +369,8 @@ class AdminController extends Controller
             'ai_name' => 'required|string|max:255',
             'ai_url' => 'required|string|max:255',
             'ai_icon' => 'required|image|mimes:jpeg,png,jpg,svg|max:2048',
+            'ai_description' => 'nullable|string|max:255',
+            'ai_guide' => 'nullable|string|max:5000',
         ]);
 
         $iconPath = null;
@@ -316,10 +378,12 @@ class AdminController extends Controller
             $iconPath = $request->file('ai_icon')->store('ai_icons', 'public');
         }
 
-        AiTool::create([
+        AiTool::forceCreate([
             'ai_name' => $request->ai_name,
             'ai_url' => $request->ai_url,
             'ai_icon' => $iconPath,
+            'ai_description' => $request->ai_description,
+            'ai_guide' => $request->ai_guide,
             'status_del' => '0',
         ]);
 
@@ -336,6 +400,8 @@ class AdminController extends Controller
             'ai_name' => 'required|string|max:255',
             'ai_url' => 'required|string|max:255',
             'ai_icon' => 'nullable|image|mimes:jpeg,png,jpg,svg|max:2048',
+            'ai_description' => 'nullable|string|max:255',
+            'ai_guide' => 'nullable|string|max:5000',
         ]);
 
         $aiTool = AiTool::findOrFail($id);
@@ -343,13 +409,15 @@ class AdminController extends Controller
         $data = [
             'ai_name' => $request->ai_name,
             'ai_url' => $request->ai_url,
+            'ai_description' => $request->ai_description,
+            'ai_guide' => $request->ai_guide,
         ];
 
         if ($request->hasFile('ai_icon')) {
             $data['ai_icon'] = $request->file('ai_icon')->store('ai_icons', 'public');
         }
 
-        $aiTool->update($data);
+        $aiTool->forceFill($data)->save();
 
         return redirect()->back()->with('success', 'AI Tool berhasil diperbarui!');
     }
