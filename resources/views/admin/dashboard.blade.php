@@ -14,7 +14,7 @@
             margin: 0;
             padding: 0;
             font-family: 'Inter', sans-serif;
-            background: url('/images/mac_background.jpg') no-repeat center center fixed;
+            background: url('/images/Background_UC.jpg') no-repeat center center fixed;
             background-size: cover;
             background-color: #1a1a1a;
             color: #fff;

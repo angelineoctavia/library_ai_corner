@@ -14,7 +14,7 @@
         }
 
         body {
-            background: url("{{ asset('images/Mac_Background.jpg') }}") no-repeat center center fixed;
+            background: url("{{ asset('images/Background_UC.png') }}") no-repeat center center fixed;
             background-size: cover;
             font-family: 'Inter', sans-serif;
             color: #ffffff;
