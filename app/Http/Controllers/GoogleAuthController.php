@@ -11,11 +11,13 @@ class GoogleAuthController extends Controller
 {
     public function redirectToGoogle()
     {
-        // PC perpus dipakai bergantian: akun Google orang sebelumnya bisa masih
-        // login di browser. prompt=select_account memaksa Google SELALU nampilin
-        // pemilih akun, jadi nggak ada yang otomatis masuk pakai akun orang lain.
+        // prompt=login memaksa input kredensial ulang. 
+        // Ditambah max_age=0 agar Google tidak menggunakan cache token sama sekali.
         return Socialite::driver('google')
-            ->with(['prompt' => 'select_account'])
+            ->with([
+                'prompt' => 'login',
+                'max_age' => '0'
+            ])
             ->redirect();
     }
 

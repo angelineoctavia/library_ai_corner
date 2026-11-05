@@ -731,7 +731,7 @@
                 }
 
                 // UBAH KE true DI PC PERPUS. Biar login session tdk tersimpan, mencegah menggunakan akun org lain.
-                const SIGN_OUT_GOOGLE_ON_LOGOUT = false;
+                const SIGN_OUT_GOOGLE_ON_LOGOUT = true;
 
                 /*
                  * Logout aplikasi. Kalau SIGN_OUT_GOOGLE_ON_LOGOUT = true, sekalian coba
